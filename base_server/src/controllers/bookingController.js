@@ -12,6 +12,15 @@ const isDate = (value) => {
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 };
 const isTime = (value) => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+const toMinutes = (time) => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+function calculateTotal(hourlyRate, startTime, endTime) {
+  const hours = (toMinutes(endTime) - toMinutes(startTime)) / 60;
+  return Math.round(Number(hourlyRate) * hours);
+}
 
 function validate(body, partial = false) {
   const output = {};
@@ -38,11 +47,7 @@ function validate(body, partial = false) {
   if (output.start_time && output.end_time && output.start_time >= output.end_time) {
     return 'Jam selesai harus setelah jam mulai';
   }
-  if (body.total_amount !== undefined || !partial) {
-    const amount = Number(body.total_amount);
-    if (!Number.isFinite(amount) || amount < 0) return 'total_amount harus angka minimal 0';
-    output.total_amount = Math.round(amount);
-  }
+  
   if (body.status !== undefined) {
     if (!bookingStatuses.includes(body.status)) return 'status booking tidak valid';
     output.status = body.status;
@@ -54,9 +59,9 @@ function validate(body, partial = false) {
   return output;
 }
 
-const getAll = async (req, res) => {
+  const getAll = async (req, res) => {
   try { success(res, 200, 'Booking berhasil diambil', await bookingModel.findAll()); }
-  catch (error) { errorResponse(res, error); }
+  catch (error) { console.error('BOOKING ERROR:', error); errorResponse(res, error); }
 };
 
 const getById = async (req, res) => {
@@ -73,7 +78,9 @@ const create = async (req, res) => {
   const booking = validate(req.body);
   if (typeof booking === 'string') return fail(res, 400, 'Validasi gagal', booking);
   try {
-    if (!await fieldModel.findById(booking.field_id)) return fail(res, 400, 'Lapangan tidak ditemukan');
+    const field = await fieldModel.findById(booking.field_id);
+    if (!field) return fail(res, 400, 'Lapangan tidak ditemukan');
+    booking.total_amount = calculateTotal(field.hourly_rate, booking.start_time, booking.end_time);
     const suffix = crypto.randomBytes(2).toString('hex').toUpperCase();
     booking.booking_code = `BK-${Date.now().toString().slice(-6)}-${suffix}`;
     booking.status = 'Menunggu';
@@ -81,7 +88,7 @@ const create = async (req, res) => {
     const created = await bookingModel.create(booking);
     await paymentModel.createForBooking(created);
     success(res, 201, 'Booking berhasil dibuat', created);
-  } catch (error) { errorResponse(res, error); }
+  } catch (error) { console.error('BOOKING ERROR:', error); errorResponse(res, error); }
 };
 
 const update = async (req, res) => {
@@ -90,7 +97,21 @@ const update = async (req, res) => {
   const booking = validate(req.body, true);
   if (typeof booking === 'string') return fail(res, 400, 'Validasi gagal', booking);
   try {
-    if (booking.field_id && !await fieldModel.findById(booking.field_id)) return fail(res, 400, 'Lapangan tidak ditemukan');
+    const existing = await bookingModel.findById(id);
+    if (!existing) return fail(res, 404, 'Booking tidak ditemukan');
+
+  
+    const fieldId = booking.field_id ?? existing.field_id;
+    const startTime = booking.start_time ?? existing.start_time;
+    const endTime = booking.end_time ?? existing.end_time;
+
+    if (startTime >= endTime) return fail(res, 400, 'Validasi gagal', 'Jam selesai harus setelah jam mulai');
+
+    const field = await fieldModel.findById(fieldId);
+    if (!field) return fail(res, 400, 'Lapangan tidak ditemukan');
+
+    booking.total_amount = calculateTotal(field.hourly_rate, startTime, endTime);
+
     const updated = await bookingModel.update(id, booking);
     if (!updated) return fail(res, 404, 'Booking tidak ditemukan');
     success(res, 200, 'Booking berhasil diperbarui', updated);

@@ -1,17 +1,6 @@
 {
   "name": "universal_api",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "description": "Template server",
-  "license": "ISC",
-  "author": "ricky",
-  "type": "commonjs",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start" : "node server.js",
-    "dev" : "nodemon server.js"
-=======
   "description": "REST API FutsalPro menggunakan Express dan SQLite3",
   "license": "ISC",
   "type": "commonjs",
@@ -19,7 +8,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
->>>>>>> d5ef0fb (API dan Web Client Version 1)
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -31,7 +19,3 @@
     "nodemon": "^3.1.14"
   }
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> d5ef0fb (API dan Web Client Version 1)
