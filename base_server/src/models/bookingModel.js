@@ -1,9 +1,14 @@
-const { dbRun, dbGet, dbAll } = require('../middlewares_helpers/sqlite3_helpers');
+const {
+  dbRun,
+  dbGet,
+  dbAll,
+} = require("../middlewares_helpers/sqlite3_helpers");
 
 const select = `SELECT b.*, f.name AS field_name FROM bookings b
   JOIN fields f ON f.id = b.field_id`;
 
-const findAll = () => dbAll(`${select} ORDER BY b.booking_date DESC, b.start_time ASC`);
+const findAll = () =>
+  dbAll(`${select} ORDER BY b.booking_date DESC, b.start_time ASC`);
 const findById = (id) => dbGet(`${select} WHERE b.id = ?`, [id]);
 
 const create = async (booking) => {
@@ -21,8 +26,8 @@ const create = async (booking) => {
       booking.start_time,
       booking.end_time,
       booking.total_amount,
-      booking.status || 'Menunggu',
-      booking.payment_status || 'Menunggu',
+      booking.status || "Menunggu",
+      booking.payment_status || "Menunggu",
     ],
   );
   return findById(result.lastID);
@@ -66,9 +71,15 @@ const updateStatuses = async (id, { status, payment_status }) => {
 };
 
 const remove = async (id) => {
-  const result = await dbRun('DELETE FROM bookings WHERE id = ?', [id]);
+  const result = await dbRun("DELETE FROM bookings WHERE id = ?", [id]);
   return result.changes > 0;
 };
 
-module.exports = { findAll, findById, create, update, updateStatuses, remove };
-
+module.exports = {
+  findAll,
+  findById,
+  create,
+  update,
+  updateStatuses,
+  remove,
+};

@@ -1,4 +1,8 @@
-const { dbRun, dbGet, dbAll } = require('../middlewares_helpers/sqlite3_helpers');
+const {
+  dbRun,
+  dbGet,
+  dbAll,
+} = require("../middlewares_helpers/sqlite3_helpers");
 
 const select = `SELECT p.*, f.name AS field_name FROM prices p
   JOIN fields f ON f.id = p.field_id`;
@@ -10,7 +14,13 @@ const create = async (price) => {
   const result = await dbRun(
     `INSERT INTO prices (field_id, period, start_time, end_time, price)
      VALUES (?, ?, ?, ?, ?)`,
-    [price.field_id, price.period, price.start_time, price.end_time, price.price],
+    [
+      price.field_id,
+      price.period,
+      price.start_time,
+      price.end_time,
+      price.price,
+    ],
   );
   return findById(result.lastID);
 };
@@ -33,9 +43,22 @@ const update = async (id, price) => {
 };
 
 const remove = async (id) => {
-  const result = await dbRun('DELETE FROM prices WHERE id = ?', [id]);
+  const result = await dbRun("DELETE FROM prices WHERE id = ?", [id]);
   return result.changes > 0;
 };
 
-module.exports = { findAll, findById, create, update, remove };
-
+const findByFieldAndPeriod = (fieldId, period) =>
+  dbAll(
+    `SELECT * FROM prices
+     WHERE field_id = ? AND period = ?
+     ORDER BY start_time ASC`,
+    [fieldId, period],
+  );
+module.exports = {
+  findAll,
+  findById,
+  findByFieldAndPeriod,
+  create,
+  update,
+  remove,
+};
