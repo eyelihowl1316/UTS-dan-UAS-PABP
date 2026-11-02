@@ -64,6 +64,13 @@ function formatDate(value: string) {
     .format(new Date(year, month - 1, day))
 }
 
+function hoursBetween(start: string, end: string) {
+  if (!start || !end) return 0
+  const [startH, startM] = start.split(':').map(Number)
+  const [endH, endM] = end.split(':').map(Number)
+  return (endH + endM / 60) - (startH + startM / 60)
+}
+
 function routeFromHash(): PageKey {
   const value = window.location.hash.replace(/^#\/?/, '') as PageKey
   return navItems.some((item) => item.id === value) ? value : 'dashboard'
@@ -420,6 +427,15 @@ function FormDialog({ kind, item, fields, saving, onClose, onSave }: {
 }) {
   const record = (item ?? {}) as unknown as Record<string, string | number | undefined>
   const value = (key: string, fallback = '') => String(record[key] ?? fallback)
+
+  const [bookingFieldId, setBookingFieldId] = useState(value('field_id', fields[0]?.id ? String(fields[0].id) : ''))
+  const [startTime, setStartTime] = useState(value('start_time', '18:00'))
+  const [endTime, setEndTime] = useState(value('end_time', '19:00'))
+
+  const selectedField = fields.find((f) => String(f.id) === bookingFieldId)
+  const duration = hoursBetween(startTime, endTime)
+  const computedTotal = selectedField && duration > 0 ? Number(selectedField.hourly_rate) * duration : 0
+  
   const title = item ? 'Edit data' : kind === 'field' ? 'Tambah lapangan' : kind === 'booking' ? 'Tambah pemesanan' : kind === 'schedule' ? 'Tambah jadwal' : 'Tambah tarif'
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -447,11 +463,17 @@ function FormDialog({ kind, item, fields, saving, onClose, onSave }: {
         {kind === 'booking' && <div className="form-grid">
           <FormField label="Nama Pelanggan"><input autoFocus defaultValue={value('customer')} name="customer" required /></FormField>
           <FormField label="Nomor Telepon"><input defaultValue={value('phone')} name="phone" required type="tel" /></FormField>
-          <FormField label="Lapangan"><select defaultValue={value('field_id', fields[0]?.id ? String(fields[0].id) : '')} name="field_id" required>{fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}</select></FormField>
+          <FormField label="Lapangan">
+            <select name="field_id" required value={bookingFieldId} onChange={(e) => setBookingFieldId(e.target.value)}>
+              {fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}
+            </select>
+          </FormField>
           <FormField label="Tanggal"><input defaultValue={value('booking_date', todayLocal())} name="booking_date" required type="date" /></FormField>
-          <FormField label="Jam Mulai"><input defaultValue={value('start_time', '18:00')} name="start_time" required type="time" /></FormField>
-          <FormField label="Jam Selesai"><input defaultValue={value('end_time', '19:00')} name="end_time" required type="time" /></FormField>
-          <FormField label="Total (Rp)"><input defaultValue={value('total_amount', String(fields[0]?.hourly_rate ?? 120000))} min="0" name="total_amount" required type="number" /></FormField>
+          <FormField label="Jam Mulai"><input name="start_time" required type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></FormField>
+          <FormField label="Jam Selesai"><input name="end_time" required type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></FormField>
+          <FormField label={`Total (Rp) · ${duration > 0 ? duration + ' jam' : 'jam tidak valid'}`}>
+            <input name="total_amount" readOnly type="number" value={computedTotal} />
+          </FormField>
         </div>}
         {kind === 'price' && <div className="form-grid">
           <FormField label="Lapangan"><select defaultValue={value('field_id', fields[0]?.id ? String(fields[0].id) : '')} name="field_id" required>{fields.map((field) => <option key={field.id} value={field.id}>{field.name}</option>)}</select></FormField>
