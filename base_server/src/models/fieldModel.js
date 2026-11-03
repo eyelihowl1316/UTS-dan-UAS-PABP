@@ -10,7 +10,7 @@ const findById = (id) => dbGet("SELECT * FROM fields WHERE id = ?", [id]);
 const create = async (field) => {
   const result = await dbRun(
     `INSERT INTO fields (name, surface_type, capacity, status, hourly_rate)
-     VALUES (?, ?, ?, ?, ?)`,
+    VALUES (?, ?, ?, ?, ?)`,
     [
       field.name,
       field.surface_type,

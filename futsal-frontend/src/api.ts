@@ -1,3 +1,5 @@
+import axios from "axios";
+
 import type {
   Booking,
   Field,
@@ -15,28 +17,55 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
-  const result = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !result.success) {
-    throw new Error(
-      result.error || result.message || "Permintaan gagal diproses",
-    );
+const http = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {"Content-Type": "application/json"},
+  timeout : 15000,
+});
+
+async function request<T>(
+  path: string,
+  config?: { method?: string; data?: unknown },
+): Promise<T> {
+  try {
+    const response = await http.request<ApiResponse<T>>({
+      url: path,
+      method: config?.method ?? "GET",
+      data: config?.data,
+    });
+    const result = response.data;
+    if (!result?.success) {
+      throw new Error(
+        result?.error || result?.message || "Permintaan gagal diproses",
+      );
+    }
+    return result.data;
+      } catch (error) {
+    if (axios.isAxiosError<Partial<ApiResponse<unknown>>>(error)) {
+      if (error.response) {
+        // server membalas dengan status 4xx/5xx
+        const { data, status } = error.response;
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            `Permintaan gagal diproses (${status})`,
+          { cause: error },
+        );
+      }
+      if (error.code === "ECONNABORTED") {
+        throw new Error("Tidak dapat terhubung ke server (waktu habis).", {
+          cause: error,
+        });
+      }
+      // server mati / jaringan putus
+      throw new Error("Tidak dapat terhubung ke server.", { cause: error });
+    }
+    throw error;
   }
-  return result.data;
-}
+} 
 
 function send<T>(path: string, method: string, body?: unknown) {
-  return request<T>(path, {
-    method,
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
+  return request<T>(path, { method, data: body });
 }
 
 export const api = {
@@ -89,4 +118,4 @@ export const api = {
   },
   summary: (today: string) =>
     request<Summary>(`/api/reports/summary?today=${today}`),
-};
+} 

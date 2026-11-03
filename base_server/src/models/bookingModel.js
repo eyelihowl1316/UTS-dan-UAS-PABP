@@ -38,8 +38,8 @@ const update = async (id, booking) => {
   if (!current) return null;
   await dbRun(
     `UPDATE bookings SET customer = ?, phone = ?, field_id = ?, booking_date = ?,
-       start_time = ?, end_time = ?, total_amount = ?, status = ?, payment_status = ?,
-       updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      start_time = ?, end_time = ?, total_amount = ?, status = ?, payment_status = ?,
+      updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
     [
       booking.customer ?? current.customer,
       booking.phone ?? current.phone,

@@ -27,7 +27,7 @@ type FormBody = Record<string, string>;
 
 const navItems: { id: PageKey; label: string; icon: string; group: string }[] =
   [
-    { id: "dashboard", label: "Ringkasan", icon: "⌂", group: "Menu utama" },
+    { id: "dashboard", label: "Dashboard", icon: "⌂", group: "Menu utama" },
     { id: "fields", label: "Data Lapangan", icon: "▦", group: "Pengelolaan" },
     {
       id: "schedule",
@@ -182,6 +182,12 @@ function App() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), 2000);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   const currentItem = navItems.find((item) => item.id === page) ?? navItems[0];
   const query = search.trim().toLocaleLowerCase("id-ID");
