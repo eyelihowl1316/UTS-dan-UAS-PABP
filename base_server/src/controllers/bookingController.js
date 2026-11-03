@@ -37,6 +37,10 @@ const toMinutes = (time) => {
   return hours * 60 + minutes;
 };
 
+// Pesan yang dikirim ke pengguna saat jadwal bentrok
+const conflictMessage = (conflict) =>
+  `Jadwal bentrok dengan booking ${conflict.booking_code} (${conflict.start_time}-${conflict.end_time}) pada lapangan dan tanggal yang sama. Silakan pilih jam lain.`;
+
 function calculateTotal(hourlyRate, startTime, endTime) {
   const hours = (toMinutes(endTime) - toMinutes(startTime)) / 60;
   return Math.round(Number(hourlyRate) * hours);
@@ -180,13 +184,26 @@ const create = async (req, res) => {
       return fail(res, 400, "Lapangan tidak ditemukan");
     }
 
+    // ===== PENGECEKAN BENTROK JADWAL (sebelum INSERT) =====
+    const conflict = await bookingModel.findConflict({
+      field_id: booking.field_id,
+      booking_date: booking.booking_date,
+      start_time: booking.start_time,
+      end_time: booking.end_time,
+    });
+
+    if (conflict) {
+      return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
+    }
+    // ======================================================
+
     // Mengambil harga sesuai tanggal dan jam booking
     booking.total_amount = await calculateBookingPrice(
       field,
       booking.booking_date,
       booking.start_time,
       booking.end_time,
-    );  
+    );
 
     const suffix = crypto.randomBytes(2).toString("hex").toUpperCase();
 
@@ -249,6 +266,25 @@ const update = async (req, res) => {
       return fail(res, 400, "Lapangan tidak ditemukan");
     }
 
+    // ===== PENGECEKAN BENTROK JADWAL (abaikan booking ini sendiri) =====
+    // Jika booking diubah menjadi "Dibatalkan", tidak perlu dicek.
+    const finalStatus = booking.status ?? existing.status;
+
+    if (finalStatus !== "Dibatalkan") {
+      const conflict = await bookingModel.findConflict({
+        field_id: fieldId,
+        booking_date: bookingDate,
+        start_time: startTime,
+        end_time: endTime,
+        excludeId: id,
+      });
+
+      if (conflict) {
+        return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
+      }
+    }
+    // ===================================================================
+
     booking.total_amount = await calculateBookingPrice(
       field,
       bookingDate,
@@ -279,6 +315,27 @@ const updateStatus = async (req, res) => {
   if (!bookingStatuses.includes(status))
     return fail(res, 400, "Validasi gagal", "status booking tidak valid");
   try {
+    const existing = await bookingModel.findById(id);
+    if (!existing) return fail(res, 404, "Booking tidak ditemukan");
+
+    // ===== PENGECEKAN BENTROK =====
+    // Booking yang tadinya dibatalkan lalu diaktifkan lagi bisa bentrok
+    // dengan booking baru yang mengambil jadwalnya.
+    if (status !== "Dibatalkan") {
+      const conflict = await bookingModel.findConflict({
+        field_id: existing.field_id,
+        booking_date: existing.booking_date,
+        start_time: existing.start_time,
+        end_time: existing.end_time,
+        excludeId: id,
+      });
+
+      if (conflict) {
+        return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
+      }
+    }
+    // ==============================
+
     const updated = await bookingModel.updateStatuses(id, { status });
     if (!updated) return fail(res, 404, "Booking tidak ditemukan");
     success(res, 200, "Status booking berhasil diperbarui", updated);

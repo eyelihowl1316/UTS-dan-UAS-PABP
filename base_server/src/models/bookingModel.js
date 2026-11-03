@@ -11,6 +11,34 @@ const findAll = () =>
   dbAll(`${select} ORDER BY b.booking_date DESC, b.start_time ASC`);
 const findById = (id) => dbGet(`${select} WHERE b.id = ?`, [id]);
 
+// Mencari booking lain yang bentrok pada lapangan + tanggal yang sama.
+// Dua jam dianggap bentrok jika: start_lama < end_baru DAN end_lama > start_baru.
+// Booking berstatus "Dibatalkan" tidak dihitung.
+// excludeId dipakai saat update/ubah status, supaya booking tidak bentrok dengan dirinya sendiri.
+const findConflict = ({
+  field_id,
+  booking_date,
+  start_time,
+  end_time,
+  excludeId = null,
+}) => {
+  let sql = `SELECT id, booking_code, start_time, end_time FROM bookings
+    WHERE field_id = ?
+      AND booking_date = ?
+      AND status != 'Dibatalkan'
+      AND start_time < ?
+      AND end_time > ?`;
+  const params = [field_id, booking_date, end_time, start_time];
+
+  if (excludeId) {
+    sql += ` AND id != ?`;
+    params.push(excludeId);
+  }
+
+  sql += ` LIMIT 1`;
+  return dbGet(sql, params);
+};
+
 const create = async (booking) => {
   const result = await dbRun(
     `INSERT INTO bookings
@@ -78,6 +106,7 @@ const remove = async (id) => {
 module.exports = {
   findAll,
   findById,
+  findConflict,
   create,
   update,
   updateStatuses,
