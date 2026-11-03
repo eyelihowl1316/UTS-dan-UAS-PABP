@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS profile (
     email TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'admin'
+        CHECK (role IN ('admin', 'staff')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT OR IGNORE INTO fields (id, name, surface_type, capacity, status, hourly_rate) VALUES
     (1, 'Lapangan A', 'Vinyl', '5 vs 5', 'Aktif', 120000),
     (2, 'Lapangan B', 'Rumput Sintetis', '5 vs 5', 'Aktif', 150000),
@@ -89,4 +99,3 @@ INSERT OR IGNORE INTO payments (transaction_code, booking_id, method, amount, st
 SELECT 'TRX-003', id, 'Transfer Bank', total_amount, 'Refund' FROM bookings WHERE booking_code = 'BK-003';
 
 INSERT OR IGNORE INTO profile (id, name, email) VALUES (1, 'Admin Futsal', 'admin@futsalpro.id');
-

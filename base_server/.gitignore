@@ -1,12 +1,7 @@
 node_modules/
-<<<<<<< HEAD
-database.sqlite
-.env
-*.log
-=======
 .env
 database.sqlite
 database.sqlite-shm
 database.sqlite-wal
+*.log
 
->>>>>>> d5ef0fb (API dan Web Client Version 1)

@@ -49,6 +49,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/prices', pricesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/auth', require('./src/routes/auth'));
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Endpoint tidak ditemukan' });
