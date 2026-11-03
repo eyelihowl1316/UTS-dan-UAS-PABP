@@ -23,6 +23,29 @@ const http = axios.create({
   timeout : 15000,
 });
 
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "staff";
+}
+
+export interface LoginResponse {
+  user: AuthUser;
+  token: string;
+}
+
+http.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return config;
+});
+
+
 async function request<T>(
   path: string,
   config?: { method?: string; data?: unknown },
@@ -69,6 +92,21 @@ function send<T>(path: string, method: string, body?: unknown) {
 }
 
 export const api = {
+
+    auth: {
+    login: (email: string, password: string) =>
+      request<LoginResponse>("/api/auth/login", {
+        method: "POST",
+        data: { email, password },
+      }),
+
+      register: (name: string, email: string, password: string) =>
+        request<LoginResponse>("/api/auth/register", {
+          method: "POST",
+          data: { name, email, password },
+        }),
+  },
+
   fields: {
     list: () => request<Field[]>("/api/fields"),
     create: (body: Omit<Field, "id">) =>

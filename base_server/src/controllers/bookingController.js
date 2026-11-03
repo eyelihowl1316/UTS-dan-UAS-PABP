@@ -12,6 +12,16 @@ const priceModel = require("../models/priceModel");
 
 const bookingStatuses = ["Menunggu", "Dikonfirmasi", "Dibatalkan"];
 const paymentStatuses = ["Menunggu", "Lunas", "Refund"];
+
+// Error khusus untuk masalah tarif, supaya dibalas 400 dengan pesan jelas
+// (bukan error umum yang membuat booking gagal tanpa alasan yang terlihat).
+class PriceError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "PriceError";
+  }
+}
+
 const isDate = (value) => {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
     return false;
@@ -40,13 +50,20 @@ function getPeriod(bookingDate) {
   return dayOfWeek === 0 || dayOfWeek === 6 ? "Weekend" : "Weekday";
 }
 
-async function calculateBookingPrice(fieldId, bookingDate, startTime, endTime) {
+async function calculateBookingPrice(field, bookingDate, startTime, endTime) {
+  const fieldId = field.id ?? field.field_id;
+  const label = field.name ? `${field.name}` : `ID ${fieldId}`;
   const period = getPeriod(bookingDate);
 
   const prices = await priceModel.findByFieldAndPeriod(fieldId, period);
 
-  if (!prices.length) {
-    throw new Error(`Harga ${period} belum tersedia`);
+  if (!prices || !prices.length) {
+    console.warn(
+      `PRICE: tarif kosong untuk field_id=${fieldId}, period=${period}`,
+    );
+    throw new PriceError(
+      `Harga ${period} untuk lapangan ${label} belum tersedia. Tambahkan tarif lapangan ini terlebih dahulu.`,
+    );
   }
 
   const start = toMinutes(startTime);
@@ -71,7 +88,12 @@ async function calculateBookingPrice(fieldId, bookingDate, startTime, endTime) {
   }
 
   if (coveredMinutes !== end - start) {
-    throw new Error(`Tarif ${period} tidak mencakup seluruh jam booking`);
+    console.warn(
+      `PRICE: tarif tidak menutup jam booking field_id=${fieldId}, period=${period}, ${startTime}-${endTime}`,
+    );
+    throw new PriceError(
+      `Tarif ${period} untuk lapangan ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
+    );
   }
 
   return Math.round(total);
@@ -147,6 +169,7 @@ const create = async (req, res) => {
   const booking = validate(req.body);
 
   if (typeof booking === "string") {
+    console.warn("BOOKING VALIDASI GAGAL:", booking, "| body:", req.body);
     return fail(res, 400, "Validasi gagal", booking);
   }
 
@@ -159,11 +182,11 @@ const create = async (req, res) => {
 
     // Mengambil harga sesuai tanggal dan jam booking
     booking.total_amount = await calculateBookingPrice(
-      booking.field_id,
+      field,
       booking.booking_date,
       booking.start_time,
       booking.end_time,
-    );
+    );  
 
     const suffix = crypto.randomBytes(2).toString("hex").toUpperCase();
 
@@ -178,6 +201,9 @@ const create = async (req, res) => {
 
     success(res, 201, "Booking berhasil dibuat", created);
   } catch (error) {
+    if (error instanceof PriceError) {
+      return fail(res, 400, error.message, error.message);
+    }
     console.error("BOOKING ERROR:", error);
     errorResponse(res, error);
   }
@@ -224,7 +250,7 @@ const update = async (req, res) => {
     }
 
     booking.total_amount = await calculateBookingPrice(
-      fieldId,
+      field,
       bookingDate,
       startTime,
       endTime,
@@ -238,6 +264,9 @@ const update = async (req, res) => {
 
     success(res, 200, "Booking berhasil diperbarui", updated);
   } catch (error) {
+    if (error instanceof PriceError) {
+      return fail(res, 400, error.message, error.message);
+    }
     console.error("BOOKING UPDATE ERROR:", error);
     errorResponse(res, error);
   }

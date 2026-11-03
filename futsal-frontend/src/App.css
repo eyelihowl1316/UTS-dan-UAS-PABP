@@ -275,6 +275,66 @@ td small { display: block; margin-top: 3px; color: #9ca69f; font-size: 8px; }
   .dialog .form-grid { grid-template-columns: 1fr; }
 }
 
+.sidebar-footer .grow {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-footer .grow small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.logout-mini:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Tombol keluar di topbar */
+.button-logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.button-logout:hover {
+  background: #fef2f2;
+}
+
+.sidebar-footer .grow strong {
+  color: #ffffff;
+}
+.sidebar-footer .grow small {
+  color: rgba(255, 255, 255, 0.7);
+}
+.sidebar-foot-icon {
+  color: #ffffff;
+  font-size: 18px;
+}
+
 @media print {
   .sidebar, .topbar, .page-heading, .toolbar, .page-footer, .button { display: none !important; }
   .main-area { margin: 0; }

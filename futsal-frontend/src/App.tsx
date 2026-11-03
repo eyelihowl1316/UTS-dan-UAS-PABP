@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import Login from "./Login";
+import type { AuthUser } from "./api";
 import { api } from "./api";
 import type {
   Booking,
@@ -113,16 +115,32 @@ function Status({ children }: { children: string }) {
 }
 
 function App() {
+
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
+  const token = localStorage.getItem("token");
+  const savedUser = localStorage.getItem("user");
+
+  if (!token || !savedUser) return null;
+
+  try {
+    return JSON.parse(savedUser) as AuthUser;
+  } catch {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    return null;
+  }
+});
+
   const [page, setPage] = useState<PageKey>(routeFromHash);
   const [fields, setFields] = useState<Field[]>([]);
   const [schedules, setSchedules] = useState<OperatingSchedule[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
-  const [profile, setProfile] = useState<Profile>({
-    name: "Admin Futsal",
-    email: "admin@MJBCourt.id",
-  });
+  const profile: Profile = {
+  name: currentUser?.name ?? "Pengelola",
+  email: currentUser?.email ?? "",
+};
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
@@ -143,7 +161,6 @@ function App() {
         bookingRows,
         paymentRows,
         priceRows,
-        profileRow,
         summaryRow,
       ] = await Promise.all([
         api.fields.list(),
@@ -151,7 +168,6 @@ function App() {
         api.bookings.list(),
         api.payments.list(),
         api.prices.list(),
-        api.profile.get(),
         api.summary(todayLocal()),
       ]);
       setFields(fieldRows);
@@ -159,7 +175,6 @@ function App() {
       setBookings(bookingRows);
       setPayments(paymentRows);
       setPrices(priceRows);
-      setProfile(profileRow);
       setSummary(summaryRow);
     } catch (error) {
       setNotice(
@@ -315,24 +330,37 @@ function App() {
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = Object.fromEntries(
-      new FormData(event.currentTarget).entries(),
-    );
-    try {
-      await api.profile.update({
-        name: String(values.name),
-        email: String(values.email),
-      });
-      setNotice("Profil berhasil diperbarui.");
-      await loadData();
-    } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "Profil gagal disimpan.",
-      );
+  event.preventDefault();
+  const values = Object.fromEntries(
+    new FormData(event.currentTarget).entries(),
+  );
+  const name = String(values.name);
+  const email = String(values.email);
+  try {
+    await api.profile.update({ name, email });
+    if (currentUser) {
+      const updated = { ...currentUser, name, email };
+      localStorage.setItem("user", JSON.stringify(updated));
+      setCurrentUser(updated);
     }
+    setNotice("Profil berhasil diperbarui.");
+  } catch (error) {
+    setNotice(
+      error instanceof Error ? error.message : "Profil gagal disimpan.",
+    );
   }
+}
 
+  function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  setCurrentUser(null);
+  setMobileOpen(false);
+  setDialog(null);
+  setSearch("");
+  window.location.hash = "/dashboard";
+}
+  
   function actionButton(label: string, action: () => void, kind = "") {
     return (
       <button
@@ -977,7 +1005,15 @@ function App() {
         : page === "bookings"
           ? "Tambah booking"
           : "Tambah tarif";
-
+  if (!currentUser) {
+  return (
+    <Login
+      onLogin={(user) => {
+        setCurrentUser(user);
+      }}
+    />
+  );
+}
   return (
     <div className="app-shell">
       {mobileOpen && (
@@ -1025,12 +1061,16 @@ function App() {
               ))}
           </nav>
         ))}
+        
         <div className="sidebar-footer">
-          <span className="sidebar-foot-icon">✦</span>
-          <div>
-            <strong>MJBCourt Admin</strong>
-            <small>Dashboard pengelolaan</small>
+          <span className="sidebar-foot-icon">⚽</span>
+          <div className="grow">
+            <strong>{currentUser?.name}</strong>
+            <small>{currentUser?.email}</small>
           </div>
+          <button className="logout-mini" onClick={logout} type="button">
+            <span aria-hidden="true">⏻</span> Keluar
+          </button>
         </div>
       </aside>
 
@@ -1067,6 +1107,9 @@ function App() {
               <strong>{profile.name}</strong>
               <span className="chevron">⌄</span>
             </a>
+            <button className="button-logout" onClick={logout} type="button">
+              <span aria-hidden="true">⏻</span> Keluar
+            </button>
           </div>
         </header>
 
