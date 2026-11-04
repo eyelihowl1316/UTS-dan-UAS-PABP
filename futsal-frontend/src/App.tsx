@@ -151,6 +151,13 @@ function App() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [dialogError, setDialogError] = useState("");
+  const [confirmState, setConfirmState] =useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+    onConfirm: () => void;
+  } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -272,18 +279,23 @@ function App() {
     }
   }
 
-  async function removeRecord(
+ function removeRecord(
     kind: "field" | "schedule" | "booking" | "price",
     id: number,
   ) {
-    if (!window.confirm("Hapus data ini?")) return;
     const actions = {
       field: () => api.fields.remove(id),
       schedule: () => api.schedules.remove(id),
       booking: () => api.bookings.remove(id),
       price: () => api.prices.remove(id),
     };
-    await mutate(actions[kind], "Data berhasil dihapus.");
+    setConfirmState({
+        tittle: "Hapus data ini?",
+        message: "Data yang dihapus tidak dapat dikembalikan.",
+        confirmLabel: "Ya, hapus",
+        danger: true,
+        onConfirm: () => void mutate(actions[kind], "Data berhasil dihapus."),
+      });
   }
 
   async function saveRecord(kind: DialogKind, values: FormBody, id?: number) {
@@ -357,7 +369,17 @@ function App() {
   }
 }
 
-  function logout() {
+function logout() {
+  setConfirmState({
+    tittle: "Keluar dari akun?",
+    message: "Kamu harus logi lagi untuk mengakses panel pengelola",
+    confirmLabel: "Ya, keluar",
+    danger: true,
+    onConfirm: dologout,
+  });
+}
+
+function dologout() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   setCurrentUser(null);
@@ -1209,6 +1231,19 @@ function App() {
               baik
             </span>
           </footer>
+          {confirmState && (
+            <ConfirmDialog
+              title={confirmState.tittle}
+              message={confirmState.message}
+              confirmLabel={confirmState.confirmLabel}
+              danger={confirmState.danger}
+              onCancel={() => setConfirmState(null)}
+              onConfirm={() => {
+                confirmState.onConfirm();
+                setConfirmState(null);
+              }}
+            />
+          )}
         </div>
       </main>
       {dialog && (
@@ -1717,6 +1752,68 @@ function FormField({
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  danger,
+  onCancel,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="modal-backdrop confirm-backdrop"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
+    >
+      <section
+        aria-modal="true"
+        className="dialog confirm-dialog"
+        role="alertdialog"
+      >
+        <div className={`confirm-icon ${danger ? "confirm-icon-danger" : ""}`}>
+          {danger ? "!" : "?"}
+        </div>
+        <h2>{title}</h2>
+        <p>{message}</p>
+        <div className="confirm-actions">
+          <button
+            className="button button-secondary"
+            onClick={onCancel}
+            type="button"
+          >
+            Batal
+          </button>
+          <button
+            autoFocus
+            className={`button ${danger ? "button-danger" : "button-primary"}`}
+            onClick={onConfirm}
+            type="button"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

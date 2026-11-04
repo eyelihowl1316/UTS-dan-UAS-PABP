@@ -345,6 +345,61 @@ td small { display: block; margin-top: 3px; color: #9ca69f; font-size: 8px; }
   font-size: 13px;
 }
 
+.confirm-backdrop {
+  z-index: 2000; /* di atas modal form kalau sedang terbuka */
+}
+
+.confirm-dialog {
+  max-width: 400px;
+  text-align: center;
+  padding: 32px 28px 24px;
+}
+
+.confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e6f4ec;
+  color: #1a7f55;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.confirm-icon-danger {
+  background: #fdecea;
+  color: #b42318;
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.confirm-dialog p {
+  margin: 0 0 24px;
+  color: #6b7a72;
+  font-size: 14px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.button-danger {
+  background: #c93a2e;
+  color: #fff;
+  border: none;
+}
+
+.button-danger:hover {
+  background: #a82d23;
+}
+
 @media print {
   .sidebar, .topbar, .page-heading, .toolbar, .page-footer, .button { display: none !important; }
   .main-area { margin: 0; }
