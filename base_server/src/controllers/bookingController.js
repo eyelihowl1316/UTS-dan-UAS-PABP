@@ -9,12 +9,11 @@ const {
   parseId,
 } = require("../middlewares_helpers/http_helpers");
 const priceModel = require("../models/priceModel");
+const scheduleModel = require("../models/scheduleModel");
 
 const bookingStatuses = ["Menunggu", "Dikonfirmasi", "Dibatalkan"];
 const paymentStatuses = ["Menunggu", "Lunas", "Refund"];
 
-// Error khusus untuk masalah tarif, supaya dibalas 400 dengan pesan jelas
-// (bukan error umum yang membuat booking gagal tanpa alasan yang terlihat).
 class PriceError extends Error {
   constructor(message) {
     super(message);
@@ -37,9 +36,49 @@ const toMinutes = (time) => {
   return hours * 60 + minutes;
 };
 
-// Pesan yang dikirim ke pengguna saat jadwal bentrok
 const conflictMessage = (conflict) =>
   `Jadwal bentrok dengan booking ${conflict.booking_code} (${conflict.start_time}-${conflict.end_time}) pada lapangan dan tanggal yang sama. Silakan pilih jam lain.`;
+
+async function validateFieldAvailability(
+  field,
+  bookingDate,
+  startTime,
+  endTime,
+) {
+  if (field.status !== "Aktif") {
+    return `Lapangan ${field.name} sedang dalam perawatan dan tidak dapat dipesan.`;
+  }
+
+  const [year, month, day] = bookingDate.split("-").map(Number);
+  const dayOfWeek = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+  const schedules = await scheduleModel.findAll();
+
+  const schedule = schedules.find((item) => {
+    const label = String(item.day_label).toLowerCase();
+    if (isWeekend)
+      return (
+        label.includes("sabtu") ||
+        label.includes("minggu") ||
+        label.includes("weekend")
+      );
+    return (
+      label.includes("senin") ||
+      label.includes("jumat") ||
+      label.includes("weekday")
+    );
+  });
+
+  if (!schedule || schedule.status !== "Buka") {
+    return `Jadwal operasional untuk tanggal ${bookingDate} sedang tutup.`;
+  }
+
+  if (startTime < schedule.open_time || endTime > schedule.close_time) {
+    return `Jam booking harus berada dalam jam operasional ${schedule.open_time}-${schedule.close_time}.`;
+  }
+
+  return null;
+}
 
 function calculateTotal(hourlyRate, startTime, endTime) {
   const hours = (toMinutes(endTime) - toMinutes(startTime)) / 60;
@@ -184,7 +223,21 @@ const create = async (req, res) => {
       return fail(res, 400, "Lapangan tidak ditemukan");
     }
 
-    // ===== PENGECEKAN BENTROK JADWAL (sebelum INSERT) =====
+    const availabilityError = await validateFieldAvailability(
+      field,
+      booking.booking_date,
+      booking.start_time,
+      booking.end_time,
+    );
+    if (availabilityError) {
+      return fail(
+        res,
+        409,
+        "Lapangan/jadwal tidak tersedia",
+        availabilityError,
+      );
+    }
+
     const conflict = await bookingModel.findConflict({
       field_id: booking.field_id,
       booking_date: booking.booking_date,
@@ -195,9 +248,7 @@ const create = async (req, res) => {
     if (conflict) {
       return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
     }
-    // ======================================================
 
-    // Mengambil harga sesuai tanggal dan jam booking
     booking.total_amount = await calculateBookingPrice(
       field,
       booking.booking_date,
@@ -266,9 +317,23 @@ const update = async (req, res) => {
       return fail(res, 400, "Lapangan tidak ditemukan");
     }
 
-    // ===== PENGECEKAN BENTROK JADWAL (abaikan booking ini sendiri) =====
-    // Jika booking diubah menjadi "Dibatalkan", tidak perlu dicek.
     const finalStatus = booking.status ?? existing.status;
+    if (finalStatus !== "Dibatalkan") {
+      const availabilityError = await validateFieldAvailability(
+        field,
+        bookingDate,
+        startTime,
+        endTime,
+      );
+      if (availabilityError) {
+        return fail(
+          res,
+          409,
+          "Lapangan/jadwal tidak tersedia",
+          availabilityError,
+        );
+      }
+    }
 
     if (finalStatus !== "Dibatalkan") {
       const conflict = await bookingModel.findConflict({
@@ -283,7 +348,6 @@ const update = async (req, res) => {
         return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
       }
     }
-    // ===================================================================
 
     booking.total_amount = await calculateBookingPrice(
       field,
@@ -318,10 +382,25 @@ const updateStatus = async (req, res) => {
     const existing = await bookingModel.findById(id);
     if (!existing) return fail(res, 404, "Booking tidak ditemukan");
 
-    // ===== PENGECEKAN BENTROK =====
-    // Booking yang tadinya dibatalkan lalu diaktifkan lagi bisa bentrok
-    // dengan booking baru yang mengambil jadwalnya.
     if (status !== "Dibatalkan") {
+      const field = await fieldModel.findById(existing.field_id);
+      if (!field) return fail(res, 400, "Lapangan tidak ditemukan");
+
+      const availabilityError = await validateFieldAvailability(
+        field,
+        existing.booking_date,
+        existing.start_time,
+        existing.end_time,
+      );
+      if (availabilityError) {
+        return fail(
+          res,
+          409,
+          "Lapangan/jadwal tidak tersedia",
+          availabilityError,
+        );
+      }
+
       const conflict = await bookingModel.findConflict({
         field_id: existing.field_id,
         booking_date: existing.booking_date,
@@ -334,7 +413,6 @@ const updateStatus = async (req, res) => {
         return fail(res, 409, "Jadwal bentrok", conflictMessage(conflict));
       }
     }
-    // ==============================
 
     const updated = await bookingModel.updateStatuses(id, { status });
     if (!updated) return fail(res, 404, "Booking tidak ditemukan");
