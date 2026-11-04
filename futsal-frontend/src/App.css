@@ -335,6 +335,16 @@ td small { display: block; margin-top: 3px; color: #9ca69f; font-size: 8px; }
   font-size: 18px;
 }
 
+.dialog-error {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff1f0;
+  border: 1px solid #f5c2c0;
+  color: #b42318;
+  font-size: 13px;
+}
+
 @media print {
   .sidebar, .topbar, .page-heading, .toolbar, .page-footer, .button { display: none !important; }
   .main-area { margin: 0; }

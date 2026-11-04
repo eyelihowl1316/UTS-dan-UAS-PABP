@@ -39,6 +39,39 @@ const toMinutes = (time) => {
 const conflictMessage = (conflict) =>
   `Jadwal bentrok dengan booking ${conflict.booking_code} (${conflict.start_time}-${conflict.end_time}) pada lapangan dan tanggal yang sama. Silakan pilih jam lain.`;
 
+// Zona waktu tempat lapangan berada. Bisa diubah lewat APP_TIMEZONE di .env.
+const APP_TIMEZONE = process.env.APP_TIMEZONE || "Asia/Jakarta";
+
+// Tanggal dan jam saat ini menurut zona waktu lapangan, bukan zona waktu server.
+function getNow() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((part) => part.type === type).value;
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+// Mengembalikan pesan error bila jadwal sudah lewat, atau null bila aman.
+function validateNotInPast(bookingDate, startTime) {
+  const now = getNow();
+  if (bookingDate < now.date) {
+    return `Tanggal ${bookingDate} sudah lewat. Pilih tanggal hari ini atau setelahnya.`;
+  }
+  if (bookingDate === now.date && startTime < now.time) {
+    return `Jam mulai ${startTime} sudah lewat (sekarang pukul ${now.time}). Pilih jam yang belum lewat.`;
+  }
+  return null;
+}
+
 async function validateFieldAvailability(
   field,
   bookingDate,
@@ -46,7 +79,7 @@ async function validateFieldAvailability(
   endTime,
 ) {
   if (field.status !== "Aktif") {
-    return `Lapangan ${field.name} sedang dalam perawatan dan tidak dapat dipesan.`;
+    return `${field.name} sedang dalam perawatan dan tidak dapat dipesan.`;
   }
 
   const [year, month, day] = bookingDate.split("-").map(Number);
@@ -223,6 +256,14 @@ const create = async (req, res) => {
       return fail(res, 400, "Lapangan tidak ditemukan");
     }
 
+    const pastError = validateNotInPast(
+      booking.booking_date,
+      booking.start_time,
+    );
+    if (pastError) {
+      return fail(res, 400, "Jadwal tidak valid", pastError);
+    }
+
     const availabilityError = await validateFieldAvailability(
       field,
       booking.booking_date,
@@ -319,6 +360,19 @@ const update = async (req, res) => {
 
     const finalStatus = booking.status ?? existing.status;
     if (finalStatus !== "Dibatalkan") {
+      // Hanya diperiksa bila jadwal diubah, supaya booking lama yang sudah
+      // lewat tetap bisa diedit datanya (nama, telepon).
+      const scheduleChanged =
+        bookingDate !== existing.booking_date ||
+        startTime !== existing.start_time ||
+        endTime !== existing.end_time;
+      if (scheduleChanged) {
+        const pastError = validateNotInPast(bookingDate, startTime);
+        if (pastError) {
+          return fail(res, 400, "Jadwal tidak valid", pastError);
+        }
+      }
+
       const availabilityError = await validateFieldAvailability(
         field,
         bookingDate,

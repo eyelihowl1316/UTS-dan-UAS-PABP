@@ -150,6 +150,7 @@ function App() {
     item: EditableRecord | null;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [dialogError, setDialogError] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -203,6 +204,10 @@ function App() {
     const timer = setTimeout(() => setNotice(""), 2000);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+  setDialogError("");
+}, [dialog]);
 
   const currentItem = navItems.find((item) => item.id === page) ?? navItems[0];
   const query = search.trim().toLocaleLowerCase("id-ID");
@@ -283,6 +288,7 @@ function App() {
 
   async function saveRecord(kind: DialogKind, values: FormBody, id?: number) {
     setSaving(true);
+    setDialogError("");
     try {
       if (kind === "field") {
         const body = {
@@ -321,7 +327,7 @@ function App() {
       );
       await loadData();
     } catch (error) {
-      setNotice(
+      setDialogError(
         error instanceof Error ? error.message : "Data gagal disimpan.",
       );
     } finally {
@@ -1212,6 +1218,7 @@ function App() {
           fields={fields}
           prices={prices}
           saving={saving}
+          error={dialogError}
           onClose={() => setDialog(null)}
           onSave={(values) => saveRecord(dialog.kind, values, dialog.item?.id)}
         />
@@ -1326,6 +1333,7 @@ function FormDialog({
   fields,
   prices,
   saving,
+  error,
   onClose,
   onSave,
 }: {
@@ -1334,6 +1342,7 @@ function FormDialog({
   fields: Field[];
   prices: Price[];
   saving: boolean;
+  error: string;
   onClose: () => void;
   onSave: (values: FormBody) => void;
 }) {
@@ -1667,6 +1676,11 @@ function FormDialog({
                   type="number"
                 />
               </FormField>
+            </div>
+          )}
+          {error && (
+            <div className="dialog-error" role="alert">
+              {error.replace(/\.$/, "")}!
             </div>
           )}
           <div className="dialog-actions">
