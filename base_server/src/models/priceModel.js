@@ -50,7 +50,7 @@ const remove = async (id) => {
 const findByFieldAndPeriod = (fieldId, period) =>
   dbAll(
     `SELECT * FROM prices
-     WHERE field_id = ? AND period = ?
+     WHERE field_id = ? AND (period = ? OR period = 'Semua Hari')
      ORDER BY start_time ASC`,
     [fieldId, period],
   );

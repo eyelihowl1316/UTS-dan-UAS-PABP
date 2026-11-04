@@ -138,8 +138,8 @@ async function calculateBookingPrice(field, bookingDate, startTime, endTime) {
       `PRICE: tarif kosong untuk field_id=${fieldId}, period=${period}`,
     );
     throw new PriceError(
-      `Harga ${period} untuk lapangan ${label} belum tersedia. Tambahkan tarif lapangan ini terlebih dahulu.`,
-    );
+      `Tarif ${period} untuk ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
+);
   }
 
   const start = toMinutes(startTime);
@@ -168,7 +168,7 @@ async function calculateBookingPrice(field, bookingDate, startTime, endTime) {
       `PRICE: tarif tidak menutup jam booking field_id=${fieldId}, period=${period}, ${startTime}-${endTime}`,
     );
     throw new PriceError(
-      `Tarif ${period} untuk lapangan ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
+      `Tarif ${period} untuk ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
     );
   }
 
