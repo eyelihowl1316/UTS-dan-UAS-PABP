@@ -115,21 +115,12 @@ function Status({ children }: { children: string }) {
 }
 
 function App() {
-
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-  const token = localStorage.getItem("token");
-  const savedUser = localStorage.getItem("user");
-
-  if (!token || !savedUser) return null;
-
-  try {
-    return JSON.parse(savedUser) as AuthUser;
-  } catch {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+
     return null;
-  }
-});
+  });
 
   const [page, setPage] = useState<PageKey>(routeFromHash);
   const [fields, setFields] = useState<Field[]>([]);
@@ -138,9 +129,9 @@ function App() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [prices, setPrices] = useState<Price[]>([]);
   const profile: Profile = {
-  name: currentUser?.name ?? "Pengelola",
-  email: currentUser?.email ?? "",
-};
+    name: currentUser?.name ?? "Pengelola",
+    email: currentUser?.email ?? "",
+  };
   const [summary, setSummary] = useState<Summary>(emptySummary);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
@@ -151,7 +142,7 @@ function App() {
   } | null>(null);
   const [saving, setSaving] = useState(false);
   const [dialogError, setDialogError] = useState("");
-  const [confirmState, setConfirmState] =useState<{
+  const [confirmState, setConfirmState] = useState<{
     title: string;
     message: string;
     confirmLabel: string;
@@ -203,8 +194,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    if (currentUser) {
+      void loadData();
+    }
+  }, [currentUser, loadData]);
 
   useEffect(() => {
     if (!notice) return;
@@ -213,8 +206,8 @@ function App() {
   }, [notice]);
 
   useEffect(() => {
-  setDialogError("");
-}, [dialog]);
+    setDialogError("");
+  }, [dialog]);
 
   const currentItem = navItems.find((item) => item.id === page) ?? navItems[0];
   const query = search.trim().toLocaleLowerCase("id-ID");
@@ -279,7 +272,7 @@ function App() {
     }
   }
 
- function removeRecord(
+  function removeRecord(
     kind: "field" | "schedule" | "booking" | "price",
     id: number,
   ) {
@@ -290,12 +283,12 @@ function App() {
       price: () => api.prices.remove(id),
     };
     setConfirmState({
-        tittle: "Hapus data ini?",
-        message: "Data yang dihapus tidak dapat dikembalikan.",
-        confirmLabel: "Ya, hapus",
-        danger: true,
-        onConfirm: () => void mutate(actions[kind], "Data berhasil dihapus."),
-      });
+      tittle: "Hapus data ini?",
+      message: "Data yang dihapus tidak dapat dikembalikan.",
+      confirmLabel: "Ya, hapus",
+      danger: true,
+      onConfirm: () => void mutate(actions[kind], "Data berhasil dihapus."),
+    });
   }
 
   async function saveRecord(kind: DialogKind, values: FormBody, id?: number) {
@@ -348,47 +341,49 @@ function App() {
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
-  const values = Object.fromEntries(
-    new FormData(event.currentTarget).entries(),
-  );
-  const name = String(values.name);
-  const email = String(values.email);
-  try {
-    await api.profile.update({ name, email });
-    if (currentUser) {
-      const updated = { ...currentUser, name, email };
-      localStorage.setItem("user", JSON.stringify(updated));
-      setCurrentUser(updated);
-    }
-    setNotice("Profil berhasil diperbarui.");
-  } catch (error) {
-    setNotice(
-      error instanceof Error ? error.message : "Profil gagal disimpan.",
+    event.preventDefault();
+    const values = Object.fromEntries(
+      new FormData(event.currentTarget).entries(),
     );
+    const name = String(values.name);
+    const email = String(values.email);
+    try {
+      await api.profile.update({ name, email });
+      if (currentUser) {
+        const updated = { ...currentUser, name, email };
+        localStorage.setItem("user", JSON.stringify(updated));
+        setCurrentUser(updated);
+      }
+      setNotice("Profil berhasil diperbarui.");
+    } catch (error) {
+      setNotice(
+        error instanceof Error ? error.message : "Profil gagal disimpan.",
+      );
+    }
   }
-}
 
-function logout() {
-  setConfirmState({
-    tittle: "Keluar dari akun?",
-    message: "Kamu harus logi lagi untuk mengakses panel pengelola",
-    confirmLabel: "Ya, keluar",
-    danger: true,
-    onConfirm: dologout,
-  });
-}
+  function logout() {
+    setConfirmState({
+      tittle: "Keluar dari akun?",
+      message: "Kamu harus logi lagi untuk mengakses panel pengelola",
+      confirmLabel: "Ya, keluar",
+      danger: true,
+      onConfirm: dologout,
+    });
+  }
 
-function dologout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
-  setCurrentUser(null);
-  setMobileOpen(false);
-  setDialog(null);
-  setSearch("");
-  window.location.hash = "/dashboard";
-}
-  
+  function dologout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    setCurrentUser(null);
+    setMobileOpen(false);
+    setDialog(null);
+    setSearch("");
+
+    window.location.hash = "/login";
+  }
+
   function actionButton(label: string, action: () => void, kind = "") {
     return (
       <button
@@ -1034,14 +1029,14 @@ function dologout() {
           ? "Tambah booking"
           : "Tambah tarif";
   if (!currentUser) {
-  return (
-    <Login
-      onLogin={(user) => {
-        setCurrentUser(user);
-      }}
-    />
-  );
-}
+    return (
+      <Login
+        onLogin={(user) => {
+          setCurrentUser(user);
+        }}
+      />
+    );
+  }
   return (
     <div className="app-shell">
       {mobileOpen && (
@@ -1089,7 +1084,7 @@ function dologout() {
               ))}
           </nav>
         ))}
-        
+
         <div className="sidebar-footer">
           <span className="sidebar-foot-icon">⚽</span>
           <div className="grow">
