@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import Login from "./Login";
+import logo from "./assets/MJBCourt Logo.png";
 import type { AuthUser } from "./api";
 import { api } from "./api";
 import type {
@@ -150,73 +151,7 @@ function App() {
     onConfirm: () => void;
   } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [operationalStatusSaving, setOperationalStatusSaving] = useState(false);
 
-  const today = new Date().getDay();
-  const todayGroup = today === 0 || today === 6 ? "Weekend" : "Weekday";
-  const todaySchedules = schedules.filter((item) => {
-    const label = item.day_label.toLowerCase();
-
-    if (todayGroup === "Weekend") {
-      return (
-        label.includes("weekend") ||
-        label.includes("sabtu") ||
-        label.includes("minggu")
-      );
-    }
-
-    return (
-      label.includes("weekday") ||
-      label.includes("senin") ||
-      label.includes("selasa") ||
-      label.includes("rabu") ||
-      label.includes("kamis") ||
-      label.includes("jumat")
-    );
-  });
-
-  const isOperationalOpen =
-    todaySchedules.length > 0 &&
-    todaySchedules.every((item) => item.status === "Buka");
-
-  async function toggleOperationalStatus() {
-    if (!todaySchedules.length || operationalStatusSaving) return;
-
-    const nextStatus: OperatingSchedule["status"] = isOperationalOpen
-      ? "Tutup"
-      : "Buka";
-
-    setOperationalStatusSaving(true);
-
-    try {
-      // Hanya mengubah jadwal kelompok hari sekarang.
-      await Promise.all(
-        todaySchedules.map((schedule) =>
-          api.schedules.update(schedule.id, {
-            status: nextStatus,
-          }),
-        ),
-      );
-
-      await loadData();
-
-      setNotice(
-        nextStatus === "Buka"
-          ? `Operasional ${todayGroup} berhasil dibuka.`
-          : `Operasional ${todayGroup} berhasil ditutup.`,
-      );
-    } catch (error) {
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "Status operasional gagal diperbarui.",
-      );
-
-      await loadData();
-    } finally {
-      setOperationalStatusSaving(false);
-    }
-  }
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -349,7 +284,7 @@ function App() {
       price: () => api.prices.remove(id),
     };
     setConfirmState({
-      title: "Hapus data ini?",
+      tittle: "Hapus data ini?",
       message: "Data yang dihapus tidak dapat dikembalikan.",
       confirmLabel: "Ya, hapus",
       danger: true,
@@ -430,7 +365,7 @@ function App() {
 
   function logout() {
     setConfirmState({
-      title: "Keluar dari akun?",
+      tittle: "Keluar dari akun?",
       message: "Kamu harus logi lagi untuk mengakses panel pengelola",
       confirmLabel: "Ya, keluar",
       danger: true,
@@ -608,8 +543,8 @@ function App() {
                 <h2>Selamat datang, {profile.name.split(" ")[0]}.</h2>
                 <p>Pantau aktivitas lapangan dan pemesanan hari ini.</p>
               </div>
-              <div className="welcome-ball" aria-hidden="true">
-                ⚽
+              <div className="welcome-ball">
+                <img src={logo} alt="MJBCourt Logo" />
               </div>
             </section>
             <section className="stat-grid">
@@ -1115,7 +1050,9 @@ function App() {
       )}
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <a className="brand" href="#/dashboard">
-          <span className="brand-mark">⚽</span>
+          <span className="brand-mark">
+            <img src={logo} alt="MJBCourt Logo" />
+          </span>
           <span>
             MJB<span>Court</span>
             <small>SPORTS MANAGEMENT</small>
@@ -1152,7 +1089,9 @@ function App() {
         ))}
 
         <div className="sidebar-footer">
-          <span className="sidebar-foot-icon">⚽</span>
+          <span className="sidebar-foot-icon">
+            <img src={logo} alt="MJBCourt Logo" />
+          </span>
           <div className="grow">
             <strong>{currentUser?.name}</strong>
             <small>{currentUser?.email}</small>
@@ -1196,24 +1135,6 @@ function App() {
               <strong>{profile.name}</strong>
               <span className="chevron">⌄</span>
             </a>
-            <button
-              className={`button-operational ${isOperationalOpen ? "is-open" : "is-closed"}`}
-              onClick={() => void toggleOperationalStatus()}
-              type="button"
-              disabled={!schedules.length || operationalStatusSaving}
-              title={
-                !schedules.length
-                  ? "Tambahkan jadwal operasional terlebih dahulu"
-                  : "Ubah status seluruh jadwal operasional"
-              }
-            >
-              <span className="operational-indicator" />
-              {operationalStatusSaving
-                ? "Menyimpan..."
-                : isOperationalOpen
-                  ? "Buka"
-                  : "Tutup"}
-            </button>
             <button className="button-logout" onClick={logout} type="button">
               <span aria-hidden="true">⏻</span> Keluar
             </button>
@@ -1312,7 +1233,7 @@ function App() {
           </footer>
           {confirmState && (
             <ConfirmDialog
-              title={confirmState.title}
+              title={confirmState.tittle}
               message={confirmState.message}
               confirmLabel={confirmState.confirmLabel}
               danger={confirmState.danger}
@@ -1475,6 +1396,7 @@ function FormDialog({
   const [startTime, setStartTime] = useState(value("start_time", "18:00"));
   const [endTime, setEndTime] = useState(value("end_time", "19:00"));
 
+  const selectedField = fields.find((f) => String(f.id) === bookingFieldId);
   const duration = hoursBetween(startTime, endTime);
   function calculatePreviewTotal(
     fieldId: string,

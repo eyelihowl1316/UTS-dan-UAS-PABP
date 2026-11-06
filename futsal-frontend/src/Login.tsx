@@ -3,7 +3,7 @@ import { api } from "./api";
 import type { AuthUser } from "./api";
 import "./Login.css";
 import Lapangan from "./assets/lapangan.png";
-
+import Logo from "./assets/MJBCourt Logo.png";
 interface LoginProps {
   onLogin: (user: AuthUser) => void;
 }
@@ -114,7 +114,7 @@ function Login({ onLogin }: LoginProps) {
     >
       <section className="login-card">
         <div className="login-brand">
-          <span className="login-logo">⚽</span>
+          <img src={Logo} alt="MJB Court Logo" className="login-logo" />
           <div>
             <h1>
               MJB<span>Court</span>
