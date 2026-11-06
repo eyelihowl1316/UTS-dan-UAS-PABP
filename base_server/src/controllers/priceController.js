@@ -45,11 +45,17 @@ const getById = async (req, res) => {
   } catch (error) { errorResponse(res, error); }
 };
 
+const overlapMessage = (o) =>
+  `Tarif bentrok dengan tarif ${o.period} ${o.start_time}-${o.end_time} pada lapangan yang sama. Ubah atau hapus tarif tersebut dulu`;
+
 const create = async (req, res) => {
   const price = validate(req.body);
   if (typeof price === 'string') return fail(res, 400, 'Validasi gagal', price);
   try {
     if (!await fieldModel.findById(price.field_id)) return fail(res, 400, 'Lapangan tidak ditemukan');
+
+    const overlap = await priceModel.findOverLap(price);
+    if (overlap) return fail(res, 400, 'Tarif bentrok', overlapMessage(overlap));
     success(res, 201, 'Tarif berhasil ditambahkan', await priceModel.create(price));
   } catch (error) { errorResponse(res, error); }
 };
@@ -60,7 +66,24 @@ const update = async (req, res) => {
   const price = validate(req.body, true);
   if (typeof price === 'string') return fail(res, 400, 'Validasi gagal', price);
   try {
+    const existing = await priceModel.findById(id);
+    if (!existing) return fail(res, 404, 'Tarif tidak ditemukan');
     if (price.field_id && !await fieldModel.findById(price.field_id)) return fail(res, 400, 'Lapangan tidak ditemukan');
+
+    const merged = {
+      field_id: price.field_id ?? existing.field_id,
+      period: price.period ?? existing.period,
+      start_time: price.start_time ?? existing.start_time,
+      end_time: price.end_time ?? existing.end_time,
+      excludeId: id,
+    };
+    if (merged.start_time >= merged.end_time) {
+      return fail(res, 400, 'Validasi gagal', 'Jam selesai harus setelah jam mulai');
+    }
+
+    const overlap = await priceModel.findOverLap(merged);
+    if (overlap) return fail(res, 400, 'Tarif bentrok', overlapMessage(overlap));
+    
     const updated = await priceModel.update(id, price);
     if (!updated) return fail(res, 404, 'Tarif tidak ditemukan');
     success(res, 200, 'Tarif berhasil diperbarui', updated);

@@ -90,14 +90,7 @@ INSERT INTO prices (field_id, period, start_time, end_time, price)
 SELECT id, 'Semua Hari', '08:00', '23:00', 150000 FROM fields WHERE name = 'Lapangan B'
 AND NOT EXISTS (SELECT 1 FROM prices WHERE field_id = fields.id);
 
--- Melengkapi tarif agar seluruh jam operasional tertutup.
--- Setiap baris dilewati jika sudah ada tarif yang beririsan pada periode dan jam
--- yang sama, jadi aman dijalankan berulang dan tidak membuat tarif ganda.
--- Weekday malam Lapangan A dan seluruh tarif Lapangan C memakai hourly_rate
--- lapangan masing-masing; Weekend siang Lapangan A memakai tarif siang Weekday.
--- Sesuaikan bila harga sebenarnya berbeda.
 
--- Lapangan A: Weekday malam dan Weekend siang
 INSERT INTO prices (field_id, period, start_time, end_time, price)
 SELECT f.id, 'Weekday', '17:00', '23:00', f.hourly_rate FROM fields f
 WHERE f.name = 'Lapangan A'
@@ -107,7 +100,7 @@ SELECT f.id, 'Weekend', '07:00', '17:00', 120000 FROM fields f
 WHERE f.name = 'Lapangan A'
 AND NOT EXISTS (SELECT 1 FROM prices p WHERE p.field_id = f.id AND p.period = 'Weekend' AND p.start_time < '17:00' AND p.end_time > '07:00');
 
--- Lapangan C: belum punya tarif sama sekali
+
 INSERT INTO prices (field_id, period, start_time, end_time, price)
 SELECT f.id, 'Weekday', '08:00', '23:00', f.hourly_rate FROM fields f
 WHERE f.name = 'Lapangan C'
@@ -117,9 +110,6 @@ SELECT f.id, 'Weekend', '07:00', '23:00', f.hourly_rate FROM fields f
 WHERE f.name = 'Lapangan C'
 AND NOT EXISTS (SELECT 1 FROM prices p WHERE p.field_id = f.id AND p.period = 'Weekend' AND p.start_time < '23:00' AND p.end_time > '07:00');
 
--- Koreksi satu kali: Weekday malam Lapangan A sempat terisi 150000 oleh seed
--- sebelumnya. Dijalankan sekali saja (dicatat di schema_fixes), jadi perubahan
--- harga yang kamu lakukan sesudahnya tidak akan ditimpa lagi.
 CREATE TABLE IF NOT EXISTS schema_fixes (
     name TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP

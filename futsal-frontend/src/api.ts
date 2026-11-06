@@ -35,15 +35,20 @@ export interface LoginResponse {
   token: string;
 }
 
-http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const url: string = error?.config?.url ?? "";
+    const isAuthCall = url.includes("/api/auth/");
 
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
+    if (error?.response?.status === 401 && !isAuthCall) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.reload();
+    }
+    return Promise.reject(error);
+  },
+);
 
 
 async function request<T>(

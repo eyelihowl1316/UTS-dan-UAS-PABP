@@ -117,10 +117,16 @@ function Status({ children }: { children: string }) {
 
 function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    return null;
+    try {
+      const token = localStorage.getItem("token");
+      const raw = localStorage.getItem("user");
+      if (!token || !raw) return null;
+      return JSON.parse(raw) as AuthUser;
+    }catch {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      return null;
+    }
   });
 
   const [page, setPage] = useState<PageKey>(routeFromHash);
@@ -350,7 +356,7 @@ function App() {
       price: () => api.prices.remove(id),
     };
     setConfirmState({
-      tittle: "Hapus data ini?",
+      title: "Hapus data ini?",
       message: "Data yang dihapus tidak dapat dikembalikan.",
       confirmLabel: "Ya, hapus",
       danger: true,
@@ -431,7 +437,7 @@ function App() {
 
   function logout() {
     setConfirmState({
-      tittle: "Keluar dari akun?",
+      title: "Keluar dari akun?",
       message: "Kamu harus logi lagi untuk mengakses panel pengelola",
       confirmLabel: "Ya, keluar",
       danger: true,
@@ -1124,7 +1130,11 @@ function App() {
             <small>SPORTS MANAGEMENT</small>
           </span>
         </a>
-        <div className="sidebar-profile">
+
+        <a className="sidebar-profile"
+          href="#/profile"
+          onClick={() => setMobileOpen(false)}
+        >
           <div className="avatar">
             {profile.name.trim().charAt(0).toLocaleUpperCase("id-ID") || "A"}
           </div>
@@ -1133,7 +1143,7 @@ function App() {
             <small>Administrator</small>
           </div>
           <span className="online-dot" />
-        </div>
+        </a>
         {["Menu utama", "Pengelolaan", "Lainnya"].map((group) => (
           <nav className="nav-group" key={group} aria-label={group}>
             <p className="nav-group-title">{group}</p>
@@ -1155,17 +1165,23 @@ function App() {
         ))}
 
         <div className="sidebar-footer">
-          <span className="sidebar-foot-icon">
-            <img src={logo} alt="MJBCourt Logo" />
-          </span>
-          <div className="grow">
-            <strong>{currentUser?.name}</strong>
-            <small>{currentUser?.email}</small>
+          <a
+            className="sidebar-foot-link"
+            href="#/profile"
+            onClick={() => setMobileOpen(false)}
+          >
+            <span className="sidebar-foot-icon">
+              <img src={logo} alt="MJBCourt Logo" />
+            </span>
+            <div className="grow">
+              <strong>{currentUser?.name}</strong>
+              <small>{currentUser?.email}</small>
+            </div>
+            </a>
+            <button className="logout-mini" onClick={logout} type="button">
+              <span aria-hidden="true">⏻</span> Keluar
+            </button>
           </div>
-          <button className="logout-mini" onClick={logout} type="button">
-            <span aria-hidden="true">⏻</span> Keluar
-          </button>
-        </div>
       </aside>
 
       <main className="main-area">
@@ -1317,7 +1333,7 @@ function App() {
           </footer>
           {confirmState && (
             <ConfirmDialog
-              title={confirmState.tittle}
+              title={confirmState.title}
               message={confirmState.message}
               confirmLabel={confirmState.confirmLabel}
               danger={confirmState.danger}

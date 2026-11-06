@@ -1,6 +1,6 @@
 const fieldModel = require('../models/fieldModel');
 const { success, fail, errorResponse, parseId } = require('../middlewares_helpers/http_helpers');
-
+const priceModel = require('../models/priceModel');
 const validStatuses = ['Aktif', 'Perawatan'];
 
 function validateField(body, partial = false) {
@@ -40,9 +40,28 @@ const getById = async (req, res) => {
 
 const create = async (req, res) => {
   const field = validateField(req.body);
-  if (typeof field === 'string') return fail(res, 400, 'Validasi gagal', field);
-  try { success(res, 201, 'Lapangan berhasil ditambahkan', await fieldModel.create(field)); }
-  catch (error) { errorResponse(res, error); }
+  if (typeof field === 'string') {
+    return fail(res, 400, 'Validasi gagal', field);
+  }
+
+  try {
+    const newField = await fieldModel.create(field);
+
+    try { 
+      await priceModel.create({
+        field_id: newField.id,
+        period: 'Semua Hari',
+        start_time: '07:00',
+        end_time: '23:00',
+        price: newField.hourly_rate,
+      });
+
+    } catch (error) { 
+      await fieldModel.remove(newField.id);
+      throw error;
+    }
+    success(res, 201, 'Lapangan berhasil dibuat', newField);
+  } catch (error) { errorResponse(res, error); }
 };
 
 const update = async (req, res) => {

@@ -133,43 +133,33 @@ async function calculateBookingPrice(field, bookingDate, startTime, endTime) {
 
   const prices = await priceModel.findByFieldAndPeriod(fieldId, period);
 
-  if (!prices || !prices.length) {
-    console.warn(
-      `PRICE: tarif kosong untuk field_id=${fieldId}, period=${period}`,
-    );
-    throw new PriceError(
+  const notCovered = () =>
+    new PriceError(
       `Tarif ${period} untuk ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
-);
-  }
+    );
+
+  if (!prices.length) throw notCovered();
+
+  const ranges = prices.map((p) => ({
+    period: p.period,
+    start: toMinutes(p.start_time),
+    end: toMinutes(p.end_time),
+    price: Number(p.price),
+  }));
 
   const start = toMinutes(startTime);
   const end = toMinutes(endTime);
 
   let total = 0;
-  let coveredMinutes = 0;
 
-  for (const price of prices) {
-    const priceStart = toMinutes(price.start_time);
-    const priceEnd = toMinutes(price.end_time);
+  for (let minute = start; minute < end; minute++) {
+    
+    const covering = ranges.filter((r) => minute >= r.start && minute < r.end);
+    if (!covering.length) throw notCovered();
 
-    const overlapStart = Math.max(start, priceStart);
-    const overlapEnd = Math.min(end, priceEnd);
-
-    if (overlapStart >= overlapEnd) continue;
-
-    const minutes = overlapEnd - overlapStart;
-
-    total += Number(price.price) * (minutes / 60);
-    coveredMinutes += minutes;
-  }
-
-  if (coveredMinutes !== end - start) {
-    console.warn(
-      `PRICE: tarif tidak menutup jam booking field_id=${fieldId}, period=${period}, ${startTime}-${endTime}`,
-    );
-    throw new PriceError(
-      `Tarif ${period} untuk ${label} tidak mencakup seluruh jam booking (${startTime}-${endTime}).`,
-    );
+    
+    const chosen = covering.find((r) => r.period === period) ?? covering[0];
+    total += chosen.price / 60;
   }
 
   return Math.round(total);
