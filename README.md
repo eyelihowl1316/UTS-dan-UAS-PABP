@@ -96,6 +96,11 @@ npm run dev
 
 Buka `http://localhost:5173`.
 
+## Akun
+
+Untuk keperluan demo, halaman daftar dibuka sehingga bapak dosen dapat membuat akun sendiri dan masuk ke dalam panel sebagai admin
+> Catatan pengembangan: pada versi produksi, pendaftaran publik akan ditutup dan akun baru hanya dapat dibuat oleh admin.
+
 ## Aturan tarif dan jam operasional
 
 Agar pemesanan berjalan benar, data diatur dengan pemisahan berikut:
