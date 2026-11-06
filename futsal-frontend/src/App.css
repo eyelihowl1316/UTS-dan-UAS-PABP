@@ -54,7 +54,7 @@
 .breadcrumb { display: flex; align-items: center; gap: 11px; color: #9ba49e; font-size: 11px; }
 .breadcrumb i { color: #c5cdc8; font-style: normal; }
 .breadcrumb strong { color: #26352e; font-weight: 700; }
-.topbar-right { display: flex; align-items: center; gap: 17px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
 .today-label { color: #79847d; font-size: 10px; font-weight: 500; }
 .topbar-divider { width: 1px; height: 25px; background: #e9eeeb; }
 .topbar-user { display: flex; align-items: center; gap: 8px; font-size: 11px; }
@@ -306,6 +306,43 @@ td small { display: block; margin-top: 3px; color: #9ca69f; font-size: 8px; }
 }
 
 /* Tombol keluar di topbar */
+
+.button-operational {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 86px;
+  padding: 8px 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, opacity .18s ease;
+}
+.button-operational.is-open {
+  color: #15803d;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.button-operational.is-closed {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.button-operational:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.operational-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 .button-logout {
   display: inline-flex;
   align-items: center;
