@@ -82,7 +82,7 @@ cd futsal-frontend
 npm install
 ```
 
-Buat file `.env` di folder `web_client`:
+Buat file `.env` di folder `futsal-frontend`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:3000
