@@ -55,11 +55,6 @@ CREATE TABLE IF NOT EXISTS prices (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS profile (
-    id INTEGER PRIMARY KEY CHECK (id = 1),
-    name TEXT NOT NULL,
-    email TEXT NOT NULL
-);
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,4 +124,4 @@ SELECT 'TRX-002', id, 'QRIS', total_amount, 'Menunggu' FROM bookings WHERE booki
 INSERT OR IGNORE INTO payments (transaction_code, booking_id, method, amount, status)
 SELECT 'TRX-003', id, 'Transfer Bank', total_amount, 'Refund' FROM bookings WHERE booking_code = 'BK-003';
 
-INSERT OR IGNORE INTO profile (id, name, email) VALUES (1, 'Admin Futsal', 'admin@futsalpro.id');
+DROP TABLE IF EXISTS profile;
