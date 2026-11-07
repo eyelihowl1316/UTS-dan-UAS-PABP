@@ -260,11 +260,30 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const updatePage = () => setPage(routeFromHash());
-    window.addEventListener("hashchange", updatePage);
-    if (!window.location.hash) window.location.hash = "/dashboard";
-    return () => window.removeEventListener("hashchange", updatePage);
-  }, []);
+  const updatePage = () => {
+    if (!currentUser) {
+      if (window.location.hash !== "#/login") {
+        window.location.hash = "/login";
+      }
+      return;
+    }
+
+    if (
+      window.location.hash === "#/login" ||
+      !window.location.hash
+    ) {
+      window.location.hash = "/dashboard";
+      return;
+    }
+
+    setPage(routeFromHash());
+  };
+
+  window.addEventListener("hashchange", updatePage);
+  updatePage();
+
+  return () => window.removeEventListener("hashchange", updatePage);
+}, [currentUser]);
 
   useEffect(() => {
     if (currentUser) {
@@ -1106,6 +1125,7 @@ function App() {
       <Login
         onLogin={(user) => {
           setCurrentUser(user);
+          window.location.hash = "/dashboard";
         }}
       />
     );

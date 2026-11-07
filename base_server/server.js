@@ -10,6 +10,7 @@ const paymentsRoutes = require("./src/routes/paymentRoutes");
 const pricesRoutes = require("./src/routes/priceRoutes");
 const reportsRoutes = require("./src/routes/reportRoutes");
 const profileRoutes = require("./src/routes/profileRoutes");
+const authMiddleware = require("./src/middlewares_helpers/auth-middleware");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -44,13 +45,13 @@ app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "OK" });
 });
 
-app.use("/api/fields", fieldsRoutes);
-app.use("/api/schedules", schedulesRoutes);
-app.use("/api/bookings", bookingsRoutes);
-app.use("/api/payments", paymentsRoutes);
-app.use("/api/prices", pricesRoutes);
-app.use("/api/reports", reportsRoutes);
-app.use("/api/profile", profileRoutes);
+app.use("/api/fields", authMiddleware, fieldsRoutes);
+app.use("/api/schedules", authMiddleware, schedulesRoutes);
+app.use("/api/bookings", authMiddleware, bookingsRoutes);
+app.use("/api/payments",authMiddleware, paymentsRoutes);
+app.use("/api/prices", authMiddleware, pricesRoutes);
+app.use("/api/reports",authMiddleware, reportsRoutes);
+app.use("/api/profile", authMiddleware, profileRoutes);
 app.use("/api/auth", require("./src/routes/auth"));
 
 app.use((req, res) => {

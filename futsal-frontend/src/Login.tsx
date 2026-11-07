@@ -15,8 +15,6 @@ interface PasswordInputProps {
   autoComplete: string;
 }
 
-// Setiap PasswordInput punya state "visible" sendiri,
-// jadi tombol Tampilkan/Sembunyikan di satu kolom tidak memengaruhi kolom lain.
 function PasswordInput({
   value,
   onChange,
@@ -84,8 +82,7 @@ function Login({ onLogin }: LoginProps) {
 
         await api.auth.register(name.trim(), email.trim(), password);
 
-        // Setelah daftar: kembali ke menu login (email tetap terisi),
-        // token TIDAK disimpan dan onLogin TIDAK dipanggil.
+      
         switchMode("login");
         setName("");
         setSuccess("Pendaftaran berhasil. Silakan masuk dengan akun Anda.");

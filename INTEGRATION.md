@@ -156,5 +156,6 @@ Hasil yang diharapkan: `HTTP/1.1 200 OK` dan daftar lapangan.
 ```
 curl.exe -i http://localhost:3000/api/fields
 ```
+![Hasil yang menandalan endpoint dilindungi (401)](image.png)
 
 Hasil yang diharapkan: `HTTP/1.1 401 Unauthorized`, menandakan endpoint terlindungi.
