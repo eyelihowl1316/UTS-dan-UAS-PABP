@@ -1,7 +1,11 @@
 -- ============================================================
+
 -- MJBCourt - Data model (SQLite)
+
 -- Bagian 1: DDL (membuat tabel), sesuai init.sql
+
 -- Bagian 2: DML contoh (isi data awal)
+
 -- Bagian 3: Query yang dipakai aplikasi
 -- ============================================================
 
@@ -120,7 +124,8 @@ INSERT OR IGNORE INTO payments (transaction_code, booking_id, method, amount, st
 SELECT 'TRX-003', id, 'Transfer Bank', total_amount, 'Refund' FROM bookings WHERE booking_code = 'BK-003';
 
 -- Akun admin dibuat lewat aplikasi atau script (password harus berupa hash bcrypt):
--- INSERT INTO users (name, email, password) VALUES ('Admin', 'admin@mjbcourt.com', '<hash bcrypt>');
+
+-- INSERT INTO users (name, email, password) 
 
 -- ------------------------------------------------------------
 -- BAGIAN 3: Query yang dipakai aplikasi
