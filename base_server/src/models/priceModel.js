@@ -47,7 +47,7 @@ const remove = async (id) => {
   return result.changes > 0;
 };
 
-const findByFieldAndPeriod =  (fieldId, period) => 
+const findByFieldAndPeriod = (fieldId, period) =>
   dbAll(
     `SELECT * FROM prices
     WHERE field_id = ? AND (period = ? OR period = 'Semua Hari')
@@ -55,21 +55,28 @@ const findByFieldAndPeriod =  (fieldId, period) =>
     [fieldId, period],
   );
 
-  const findOverLap = ({field_id, period, start_time, end_time, excludeId = null}) => {
-    let sql = `SELECT * FROM prices
-      WHERE field_id = ?
-        AND (period = ? OR period = 'Semua Hari')
-        AND start_time < ?
-        AND end_time > ?`;
-    const params = [field_id, period, end_time, start_time];
+const findOverLap = ({
+  field_id,
+  period,
+  start_time,
+  end_time,
+  excludeId = null,
+}) => {
+  let sql = `SELECT * FROM prices
+    WHERE field_id = ?
+      AND (period = ? OR period = 'Semua Hari')
+      AND start_time < ?
+      AND end_time > ?`;
 
-    if (excudeId) {
-      sql += ` AND id != ?`;
-      params.push(excludeId);
-    }
+  const params = [field_id, period, end_time, start_time];
 
-    return dbGet(sql + `LIMIT 1`, params);
-}
+  if (excludeId) {
+    sql += ` AND id != ?`;
+    params.push(excludeId);
+  }
+
+  return dbGet(sql + ` LIMIT 1`, params);
+};
 
 module.exports = {
   findAll,
