@@ -2,17 +2,47 @@
 
 Aplikasi manajemen penyewaan lapangan olahraga. Pengelola (admin/staff) dapat mengatur data lapangan, jam operasional, harga sewa, pemesanan, pembayaran, dan melihat laporan dalam satu panel.
 
+## Daftar isi
+
+- [Cakupan versi ini](#cakupan-versi-ini)
+- [Fitur](#fitur)
+- [Teknologi](#teknologi)
+- [Struktur proyek](#struktur-proyek)
+- [Cara menjalankan](#cara-menjalankan)
+- [Akun](#akun)
+- [Alur penggunaan pertama kali](#alur-penggunaan-pertama-kali)
+- [Aturan tarif dan jam operasional](#aturan-tarif-dan-jam-operasional)
+- [Alur pemesanan](#alur-pemesanan)
+- [Endpoint API](#endpoint-api)
+- [Dokumentasi lainnya](#dokumentasi-lainnya)
+- [Pemecahan masalah](#pemecahan-masalah)
+- [Catatan keamanan](#catatan-keamanan)
+- [Tim pengembang](#tim-pengembang)
+
+## Cakupan versi ini
+
+MJBCourt dirancang sebagai sistem multi-platform. Pada tahap Ujian Tengah Semester (UTS), yang dikerjakan adalah:
+
+| Komponen | Pengguna | Status |
+|---|---|---|
+| Web Client | Administrator (pengelola) | Tersedia di repo ini |
+| API Server (backend) | Seluruh client | Tersedia di repo ini |
+| Desktop Client | Petugas lapangan | Direncanakan pada tahap Ujian Akhir Semester (UAS) |
+| Mobile Client | Pelanggan | Direncanakan pada tahap Ujian Akhir Semester (UAS) |
+
 ## Fitur
 
 - **Autentikasi**: login dengan JWT, sesi bertahan setelah refresh, otomatis keluar saat token kedaluwarsa.
-- **Dashboard**: ringkasan jumlah lapangan, booking hari ini, booking menunggu, dan pendapatan terverifikasi.
+- **Dashboard**: ringkasan jumlah lapangan, booking hari ini, booking menunggu, dan pendapatan terverifikasi, serta daftar booking terbaru dan status tiap lapangan.
 - **Data lapangan**: tambah, ubah, hapus, dan atur status (Aktif / Perawatan).
 - **Jadwal operasional**: jam buka dan tutup untuk Weekday dan Weekend, serta tombol Buka/Tutup cepat.
 - **Harga sewa**: tarif per lapangan berdasarkan periode (Weekday, Weekend, Semua Hari) dan rentang jam. Tarif yang tumpang tindih ditolak.
 - **Pemesanan**: total dihitung otomatis dari tarif, dengan validasi jam operasional, jadwal yang sudah lewat, dan bentrok dengan booking lain.
-- **Pembayaran**: verifikasi transaksi dan tandai refund.
+- **Pembayaran**: verifikasi transaksi dan tandai refund, dengan ringkasan total transaksi, menunggu verifikasi, dana terverifikasi, dan refund.
 - **Laporan**: rekap pemesanan dan pendapatan, dapat dicetak.
 - **Profil pengelola**: ubah nama dan email.
+- **Pencarian**: setiap halaman daftar (lapangan, jadwal, harga, pemesanan, pembayaran) memiliki kotak pencarian.
+- **Indikator operasional**: di bagian atas panel tampil status Buka atau Tutup sesuai jadwal operasional.
 
 ## Teknologi
 
@@ -27,18 +57,17 @@ Aplikasi manajemen penyewaan lapangan olahraga. Pengelola (admin/staff) dapat me
 
 ```
 .
-├── base_server/          # Backend (REST API)
+├── base_server/               # Backend (REST API)
 │   └── src/
-│       ├──config
-│       ├── controllers/  
-│       ├── models/       
+│       ├── config/
+│       ├── controllers/
 │       ├── middlewares_helpers/
-│       ├──models
-│       ├──routes
-│       ├──sql_scripts
-└── futsal_frontend/           # Frontend (React + Vite)
+│       ├── models/
+│       ├── routes/
+│       └── sql_scripts/       # Skema tabel dan data awal (init.sql)
+└── futsal-frontend/           # Frontend (React + Vite)
     └── src/
-        ├──main.tsx
+        ├── main.tsx
         ├── App.tsx
         ├── Login.tsx
         ├── api.ts
@@ -65,9 +94,19 @@ Buat file `.env` di folder `base_server`:
 PORT=3000
 JWT_SECRET=ganti-dengan-secret-yang-panjang-dan-tetap
 JWT_EXPIRES_IN=1d
-FRONTEND_ORIGIN= http://localhost:5173
+FRONTEND_ORIGIN=http://localhost:5173
 SQLITE_DB_PATH=database.sqlite
 ```
+
+Penjelasan variabel:
+
+| Variabel | Fungsi |
+|---|---|
+| `PORT` | Port tempat server berjalan |
+| `JWT_SECRET` | Kunci untuk menandatangani token login |
+| `JWT_EXPIRES_IN` | Masa berlaku token (`1d` = 1 hari) |
+| `FRONTEND_ORIGIN` | Alamat frontend yang diizinkan mengakses API (CORS), tanpa spasi dan tanpa garis miring di akhir |
+| `SQLITE_DB_PATH` | Lokasi file database SQLite |
 
 Jalankan server:
 
@@ -96,10 +135,24 @@ npm run dev
 
 Buka `http://localhost:5173`.
 
+> Jalankan backend lebih dahulu. Jika `PORT` backend diganti, sesuaikan `VITE_API_BASE_URL`, lalu jalankan ulang frontend karena Vite hanya membaca `.env` saat dimulai.
+
 ## Akun
 
 Untuk keperluan demo, halaman daftar dibuka sehingga bapak dosen dapat membuat akun sendiri dan masuk ke dalam panel sebagai admin
 > Catatan pengembangan: pada versi produksi, pendaftaran publik akan ditutup dan akun baru hanya dapat dibuat oleh admin.
+
+## Alur penggunaan pertama kali
+
+Urutan berikut membantu agar pemesanan langsung bisa dicoba tanpa galat:
+
+1. Daftar akun, lalu login.
+2. Buka **Data Lapangan** dan pastikan ada lapangan berstatus **Aktif**.
+3. Buka **Jadwal Operasional** dan pastikan jam buka Weekday dan Weekend sudah terisi dengan status **Buka**.
+4. Buka **Harga Sewa** dan pastikan lapangan memiliki tarif pada jam yang akan dipesan.
+5. Buka **Pemesanan** dan buat booking pada tanggal yang belum lewat.
+6. Buka **Pembayaran** dan verifikasi transaksi dari booking tersebut.
+7. Buka **Dashboard** dan **Laporan** untuk melihat pendapatan terverifikasi.
 
 ## Aturan tarif dan jam operasional
 
@@ -126,6 +179,17 @@ Saat lapangan baru dibuat, otomatis dibuat satu tarif "Semua Hari" 07:00-23:00 s
 3. Total dihitung per menit dengan tarif yang cocok. Tarif spesifik (Weekday/Weekend) didahulukan dari "Semua Hari".
 4. Booking dibuat berstatus "Menunggu" beserta data pembayarannya.
 
+Kode booking dan kode transaksi dibuat otomatis oleh sistem, bukan diisi pengguna. Jika booking ditolak, panel menampilkan pesan alasannya:
+
+| Kondisi | Alasan yang ditampilkan |
+|---|---|
+| Lapangan berstatus Perawatan | Lapangan sedang dalam perawatan dan tidak dapat dipesan |
+| Jam di luar jam operasional | Jam booking harus berada dalam jam operasional (misalnya 07:00-23:00) |
+| Jam sudah lewat | Jam mulai sudah lewat, pilih jam yang belum lewat |
+| Bentrok dengan booking lain | Jadwal bentrok dengan booking lain pada lapangan dan tanggal yang sama |
+
+Contoh perhitungan: booking Lapangan A pada hari Sabtu pukul 16:00 sampai 18:00, dengan tarif Weekend 120.000 per jam sebelum 17:00 dan 150.000 per jam sesudahnya, menghasilkan 120.000 + 150.000 = 270.000.
+
 ## Endpoint API
 
 | Method | Endpoint | Keterangan |
@@ -148,8 +212,31 @@ Saat lapangan baru dibuat, otomatis dibuat satu tarif "Semua Hari" 07:00-23:00 s
 
 Semua endpoint selain login dan registrasi memerlukan header `Authorization: Bearer <token>`.
 
+Semua respons berbentuk JSON dengan field `success`, `message`, dan `data` (serta `error` jika gagal). Contoh dan kode status lengkap ada di [INTEGRATION.md](INTEGRATION.md).
+
+
+## Pemecahan masalah
+
+| Gejala | Penanganan |
+|---|---|
+| Frontend menampilkan galat jaringan | Pastikan backend berjalan dan `VITE_API_BASE_URL` sesuai dengan `PORT` backend. |
+| Galat CORS di konsol browser | Samakan `FRONTEND_ORIGIN` dengan alamat frontend di browser. |
+| Selalu kembali ke halaman login | Token kedaluwarsa atau `JWT_SECRET` berubah. Login ulang. |
+| Booking ditolak | Periksa status lapangan, jadwal operasional, tarif, dan apakah jadwal sudah lewat atau bentrok. |
+| Pesan "Token tidak ditemukan" | Header `Authorization` tidak terkirim. Login ulang. |
+
+Daftar yang lebih lengkap ada di `PROJECT_NOTES.md`.
 
 ## Catatan keamanan
 
 - Jangan commit file `.env`. Pastikan sudah ada di `.gitignore`.
 - Gunakan `JWT_SECRET` yang panjang dan tetap.
+- Password disimpan dalam bentuk hash bcrypt, bukan teks asli.
+
+## Tim pengembang
+
+Proyek mata kuliah Pengembangan Aplikasi Berbasis Platform, Program Studi S-1 Sistem Informasi, Fakultas Informatika, Universitas Mikroskil, Medan, 2026.
+
+- Michael Nicholas Sirait
+- Jumita Paulina Blanzesky Tambunan
+- Boyris Lolodo Hutajulu

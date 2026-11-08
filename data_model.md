@@ -4,136 +4,157 @@ Dokumen ini berisi diagram relasi, kamus data, serta skema SQL, data contoh, dan
 
 ## Diagram relasi (ERD)
 
+Diagram ini sama dengan Gambar 2.8 (Data Model) pada laporan. Tanda `PK` adalah primary key, `FK` foreign key, `UK` kolom unik, dan `NN` kolom wajib diisi (not null).
+
 ```mermaid
 erDiagram
-    fields ||--o{ bookings : "dipesan pada"
-    fields ||--o{ prices : "memiliki tarif"
-    bookings ||--o{ payments : "dibayar lewat"
-
-    fields {
-        INTEGER id PK
-        TEXT name UK
-        TEXT surface_type
-        TEXT capacity
-        TEXT status
-        INTEGER hourly_rate
-    }
-    bookings {
-        INTEGER id PK
-        TEXT booking_code UK
-        TEXT customer
-        TEXT phone
-        INTEGER field_id FK
-        TEXT booking_date
-        TEXT start_time
-        TEXT end_time
-        INTEGER total_amount
-        TEXT status
-        TEXT payment_status
-    }
-    payments {
-        INTEGER id PK
-        TEXT transaction_code UK
-        INTEGER booking_id FK
-        TEXT method
-        INTEGER amount
-        TEXT status
-        TEXT payment_date
-    }
-    prices {
-        INTEGER id PK
-        INTEGER field_id FK
-        TEXT period
-        TEXT start_time
-        TEXT end_time
-        INTEGER price
+    users {
+        integer id PK
+        text name "NN"
+        text email UK "NN"
+        text password "NN"
+        text role "NN"
+        text created_at
     }
     operating_schedules {
-        INTEGER id PK
-        TEXT day_label UK
-        TEXT open_time
-        TEXT close_time
-        TEXT status
+        integer id PK
+        text day_label UK "NN"
+        text open_time "NN"
+        text close_time "NN"
+        text status "NN"
+        text created_at
     }
-    users {
-        INTEGER id PK
-        TEXT name
-        TEXT email UK
-        TEXT password
-        TEXT role
+    fields {
+        integer id PK
+        text name UK "NN"
+        text surface_type "NN"
+        text capacity "NN"
+        text status "NN"
+        integer hourly_rate "NN"
+        text created_at
+        text updated_at
     }
+    bookings {
+        integer id PK
+        text booking_code UK "NN"
+        text customer "NN"
+        text phone "NN"
+        integer field_id FK "NN"
+        text booking_date "NN"
+        text start_time "NN"
+        text end_time "NN"
+        integer total_amount "NN"
+        text status "NN"
+        text payment_status "NN"
+        text created_at
+        text updated_at
+    }
+    payments {
+        integer id PK
+        text transaction_code UK "NN"
+        integer booking_id FK "NN"
+        text method "NN"
+        integer amount "NN"
+        text status "NN"
+        date payment_date
+        text created_at
+    }
+    prices {
+        integer id PK
+        integer field_id FK "NN"
+        text period "NN"
+        text start_time "NN"
+        text end_time "NN"
+        integer price "NN"
+        text created_at
+    }
+
+    fields ||--o{ bookings : "field_id"
+    bookings ||--o{ payments : "booking_id"
+    fields ||--o{ prices : "field_id"
 ```
 
-Tabel `operating_schedules` dan `users` berdiri sendiri, tidak memiliki relasi ke tabel lain.
+Tabel `users` dan `operating_schedules` berdiri sendiri, tidak memiliki relasi ke tabel lain.
 
 ## Kamus data
-
-### fields
-
-| Kolom | Tipe | Aturan | Keterangan |
-|---|---|---|---|
-| id | INTEGER | PK, auto increment | Identitas lapangan |
-| name | TEXT | Wajib, unik | Nama lapangan |
-| surface_type | TEXT | Wajib | Jenis permukaan (Vinyl, Rumput Sintetis, Interlock) |
-| capacity | TEXT | Default `5 vs 5` | Kapasitas pemain |
-| status | TEXT | `Aktif` atau `Perawatan`, default `Aktif` | Lapangan `Perawatan` tidak bisa dipesan |
-| hourly_rate | INTEGER | Minimal 0 | Tarif per jam bawaan lapangan |
-| created_at, updated_at | TEXT | Default waktu saat ini | Waktu dibuat dan diubah |
-
-### operating_schedules
-
-| Kolom | Tipe | Aturan | Keterangan |
-|---|---|---|---|
-| id | INTEGER | PK | Identitas jadwal |
-| day_label | TEXT | Wajib, unik | Label hari (misalnya `Senin - Jumat`) |
-| open_time, close_time | TEXT | Wajib | Jam buka dan tutup (`HH:MM`) |
-| status | TEXT | `Buka` atau `Tutup` | Status operasional |
-
-### bookings
-
-| Kolom | Tipe | Aturan | Keterangan |
-|---|---|---|---|
-| id | INTEGER | PK | Identitas booking |
-| booking_code | TEXT | Wajib, unik | Kode booking (misalnya `BK-001`) |
-| customer, phone | TEXT | Wajib | Nama dan nomor telepon pemesan |
-| field_id | INTEGER | FK ke `fields.id`, `ON DELETE RESTRICT` | Lapangan yang dipesan |
-| booking_date | TEXT | Wajib | Tanggal main (`YYYY-MM-DD`) |
-| start_time, end_time | TEXT | Wajib | Jam mulai dan selesai (`HH:MM`) |
-| total_amount | INTEGER | Minimal 0 | Total harga hasil perhitungan tarif |
-| status | TEXT | `Menunggu`, `Dikonfirmasi`, `Dibatalkan` | Status pemesanan |
-| payment_status | TEXT | `Menunggu`, `Lunas`, `Refund` | Ringkasan status pembayaran |
-
-### payments
-
-| Kolom | Tipe | Aturan | Keterangan |
-|---|---|---|---|
-| id | INTEGER | PK | Identitas pembayaran |
-| transaction_code | TEXT | Wajib, unik | Kode transaksi (misalnya `TRX-001`) |
-| booking_id | INTEGER | FK ke `bookings.id`, `ON DELETE CASCADE` | Booking yang dibayar |
-| method | TEXT | Default `Transfer Bank` | Metode pembayaran (misalnya `QRIS`) |
-| amount | INTEGER | Minimal 0 | Nominal pembayaran |
-| status | TEXT | `Menunggu`, `Terverifikasi`, `Refund` | Hanya `Terverifikasi` dihitung sebagai pendapatan |
-| payment_date | TEXT | Default tanggal hari ini | Tanggal pembayaran |
-
-### prices
-
-| Kolom | Tipe | Aturan | Keterangan |
-|---|---|---|---|
-| id | INTEGER | PK | Identitas tarif |
-| field_id | INTEGER | FK ke `fields.id`, `ON DELETE CASCADE` | Lapangan pemilik tarif |
-| period | TEXT | Wajib | `Weekday`, `Weekend`, atau `Semua Hari` |
-| start_time, end_time | TEXT | Wajib | Rentang jam berlakunya tarif |
-| price | INTEGER | Minimal 0 | Harga per jam pada rentang tersebut |
 
 ### users
 
 | Kolom | Tipe | Aturan | Keterangan |
 |---|---|---|---|
-| id | INTEGER | PK | Identitas pengguna |
-| name | TEXT | Wajib | Nama pengelola |
-| email | TEXT | Wajib, unik | Dipakai untuk login |
-| password | TEXT | Wajib | Hash bcrypt, bukan teks asli |
-| role | TEXT | `admin` atau `staff`, default `admin` | Peran (hak akses berbeda belum diterapkan) |
+| id | integer | PK, auto increment | Identitas pengguna |
+| name | text | Wajib | Nama pengelola |
+| email | text | Wajib, unik | Dipakai untuk login |
+| password | text | Wajib | Hash bcrypt, bukan teks asli |
+| role | text | Wajib; `admin` atau `staff`, default `admin` | Peran pengguna |
+| created_at | text | Default waktu saat ini | Waktu akun dibuat |
+
+### operating_schedules
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | integer | PK, auto increment | Identitas jadwal |
+| day_label | text | Wajib, unik | Label hari (misalnya `Senin - Jumat`) |
+| open_time | text | Wajib | Jam buka (`HH:MM`) |
+| close_time | text | Wajib | Jam tutup (`HH:MM`) |
+| status | text | Wajib; `Buka` atau `Tutup`, default `Buka` | Status operasional |
+| created_at | text | Default waktu saat ini | Waktu dibuat |
+
+### fields
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | integer | PK, auto increment | Identitas lapangan |
+| name | text | Wajib, unik | Nama lapangan |
+| surface_type | text | Wajib | Jenis permukaan (Vinyl, Rumput Sintetis, Interlock) |
+| capacity | text | Wajib, default `5 vs 5` | Kapasitas pemain |
+| status | text | Wajib; `Aktif` atau `Perawatan`, default `Aktif` | Lapangan `Perawatan` tidak bisa dipesan |
+| hourly_rate | integer | Wajib, minimal 0 | Tarif per jam bawaan lapangan |
+| created_at | text | Default waktu saat ini | Waktu dibuat |
+| updated_at | text | Default waktu saat ini | Waktu terakhir diubah |
+
+### bookings
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | integer | PK, auto increment | Identitas booking |
+| booking_code | text | Wajib, unik | Kode booking |
+| customer | text | Wajib | Nama pemesan |
+| phone | text | Wajib | Nomor telepon pemesan |
+| field_id | integer | FK ke `fields.id`, wajib, `ON DELETE RESTRICT` | Lapangan yang dipesan |
+| booking_date | text | Wajib | Tanggal main (`YYYY-MM-DD`) |
+| start_time | text | Wajib | Jam mulai (`HH:MM`) |
+| end_time | text | Wajib | Jam selesai (`HH:MM`) |
+| total_amount | integer | Wajib, minimal 0 | Total harga hasil perhitungan tarif |
+| status | text | Wajib; `Menunggu`, `Dikonfirmasi`, `Dibatalkan` | Status pemesanan |
+| payment_status | text | Wajib; `Menunggu`, `Lunas`, `Refund` | Ringkasan status pembayaran |
+| created_at | text | Default waktu saat ini | Waktu dibuat |
+| updated_at | text | Default waktu saat ini | Waktu terakhir diubah |
+
+### payments
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | integer | PK, auto increment | Identitas pembayaran |
+| transaction_code | text | Wajib, unik | Kode transaksi |
+| booking_id | integer | FK ke `bookings.id`, wajib, `ON DELETE CASCADE` | Booking yang dibayar |
+| method | text | Wajib, default `Transfer Bank` | Metode pembayaran (misalnya `QRIS`) |
+| amount | integer | Wajib, minimal 0 | Nominal pembayaran |
+| status | text | Wajib; `Menunggu`, `Terverifikasi`, `Refund` | Hanya `Terverifikasi` dihitung sebagai pendapatan |
+| payment_date | date | Default tanggal hari ini | Tanggal pembayaran (disimpan sebagai teks `YYYY-MM-DD` di SQLite) |
+| created_at | text | Default waktu saat ini | Waktu dibuat |
+
+### prices
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | integer | PK, auto increment | Identitas tarif |
+| field_id | integer | FK ke `fields.id`, wajib, `ON DELETE CASCADE` | Lapangan pemilik tarif |
+| period | text | Wajib | `Weekday`, `Weekend`, atau `Semua Hari` |
+| start_time | text | Wajib | Jam mulai berlakunya tarif |
+| end_time | text | Wajib | Jam akhir berlakunya tarif |
+| price | integer | Wajib, minimal 0 | Harga per jam pada rentang tersebut |
+| created_at | text | Default waktu saat ini | Waktu dibuat |
 
 ## Aturan relasi
 
@@ -279,8 +300,6 @@ INSERT OR IGNORE INTO payments (transaction_code, booking_id, method, amount, st
 SELECT 'TRX-002', id, 'QRIS', total_amount, 'Menunggu' FROM bookings WHERE booking_code = 'BK-002';
 INSERT OR IGNORE INTO payments (transaction_code, booking_id, method, amount, status)
 SELECT 'TRX-003', id, 'Transfer Bank', total_amount, 'Refund' FROM bookings WHERE booking_code = 'BK-003';
-
--- Akun admin dibuat lewat aplikasi atau script (password harus berupa hash bcrypt):
 
 -- INSERT INTO users (name, email, password) 
 
