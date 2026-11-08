@@ -1,3 +1,160 @@
+# Data Model MJBCourt
+
+Dokumen ini berisi diagram relasi, kamus data, serta skema SQL, data contoh, dan query yang dipakai aplikasi (SQLite).
+
+## Diagram relasi (ERD)
+
+```mermaid
+erDiagram
+    fields ||--o{ bookings : "dipesan pada"
+    fields ||--o{ prices : "memiliki tarif"
+    bookings ||--o{ payments : "dibayar lewat"
+
+    fields {
+        INTEGER id PK
+        TEXT name UK
+        TEXT surface_type
+        TEXT capacity
+        TEXT status
+        INTEGER hourly_rate
+    }
+    bookings {
+        INTEGER id PK
+        TEXT booking_code UK
+        TEXT customer
+        TEXT phone
+        INTEGER field_id FK
+        TEXT booking_date
+        TEXT start_time
+        TEXT end_time
+        INTEGER total_amount
+        TEXT status
+        TEXT payment_status
+    }
+    payments {
+        INTEGER id PK
+        TEXT transaction_code UK
+        INTEGER booking_id FK
+        TEXT method
+        INTEGER amount
+        TEXT status
+        TEXT payment_date
+    }
+    prices {
+        INTEGER id PK
+        INTEGER field_id FK
+        TEXT period
+        TEXT start_time
+        TEXT end_time
+        INTEGER price
+    }
+    operating_schedules {
+        INTEGER id PK
+        TEXT day_label UK
+        TEXT open_time
+        TEXT close_time
+        TEXT status
+    }
+    users {
+        INTEGER id PK
+        TEXT name
+        TEXT email UK
+        TEXT password
+        TEXT role
+    }
+```
+
+Tabel `operating_schedules` dan `users` berdiri sendiri, tidak memiliki relasi ke tabel lain.
+
+## Kamus data
+
+### fields
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK, auto increment | Identitas lapangan |
+| name | TEXT | Wajib, unik | Nama lapangan |
+| surface_type | TEXT | Wajib | Jenis permukaan (Vinyl, Rumput Sintetis, Interlock) |
+| capacity | TEXT | Default `5 vs 5` | Kapasitas pemain |
+| status | TEXT | `Aktif` atau `Perawatan`, default `Aktif` | Lapangan `Perawatan` tidak bisa dipesan |
+| hourly_rate | INTEGER | Minimal 0 | Tarif per jam bawaan lapangan |
+| created_at, updated_at | TEXT | Default waktu saat ini | Waktu dibuat dan diubah |
+
+### operating_schedules
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK | Identitas jadwal |
+| day_label | TEXT | Wajib, unik | Label hari (misalnya `Senin - Jumat`) |
+| open_time, close_time | TEXT | Wajib | Jam buka dan tutup (`HH:MM`) |
+| status | TEXT | `Buka` atau `Tutup` | Status operasional |
+
+### bookings
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK | Identitas booking |
+| booking_code | TEXT | Wajib, unik | Kode booking (misalnya `BK-001`) |
+| customer, phone | TEXT | Wajib | Nama dan nomor telepon pemesan |
+| field_id | INTEGER | FK ke `fields.id`, `ON DELETE RESTRICT` | Lapangan yang dipesan |
+| booking_date | TEXT | Wajib | Tanggal main (`YYYY-MM-DD`) |
+| start_time, end_time | TEXT | Wajib | Jam mulai dan selesai (`HH:MM`) |
+| total_amount | INTEGER | Minimal 0 | Total harga hasil perhitungan tarif |
+| status | TEXT | `Menunggu`, `Dikonfirmasi`, `Dibatalkan` | Status pemesanan |
+| payment_status | TEXT | `Menunggu`, `Lunas`, `Refund` | Ringkasan status pembayaran |
+
+### payments
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK | Identitas pembayaran |
+| transaction_code | TEXT | Wajib, unik | Kode transaksi (misalnya `TRX-001`) |
+| booking_id | INTEGER | FK ke `bookings.id`, `ON DELETE CASCADE` | Booking yang dibayar |
+| method | TEXT | Default `Transfer Bank` | Metode pembayaran (misalnya `QRIS`) |
+| amount | INTEGER | Minimal 0 | Nominal pembayaran |
+| status | TEXT | `Menunggu`, `Terverifikasi`, `Refund` | Hanya `Terverifikasi` dihitung sebagai pendapatan |
+| payment_date | TEXT | Default tanggal hari ini | Tanggal pembayaran |
+
+### prices
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK | Identitas tarif |
+| field_id | INTEGER | FK ke `fields.id`, `ON DELETE CASCADE` | Lapangan pemilik tarif |
+| period | TEXT | Wajib | `Weekday`, `Weekend`, atau `Semua Hari` |
+| start_time, end_time | TEXT | Wajib | Rentang jam berlakunya tarif |
+| price | INTEGER | Minimal 0 | Harga per jam pada rentang tersebut |
+
+### users
+
+| Kolom | Tipe | Aturan | Keterangan |
+|---|---|---|---|
+| id | INTEGER | PK | Identitas pengguna |
+| name | TEXT | Wajib | Nama pengelola |
+| email | TEXT | Wajib, unik | Dipakai untuk login |
+| password | TEXT | Wajib | Hash bcrypt, bukan teks asli |
+| role | TEXT | `admin` atau `staff`, default `admin` | Peran (hak akses berbeda belum diterapkan) |
+
+## Aturan relasi
+
+| Relasi | Aturan saat data induk dihapus |
+|---|---|
+| `bookings.field_id` ke `fields.id` | Ditolak jika lapangan masih punya booking (`RESTRICT`) |
+| `prices.field_id` ke `fields.id` | Tarif ikut terhapus (`CASCADE`) |
+| `payments.booking_id` ke `bookings.id` | Pembayaran ikut terhapus (`CASCADE`) |
+
+Semua relasi juga memakai `ON UPDATE CASCADE`. Relasi hanya ditegakkan jika `PRAGMA foreign_keys = ON` aktif pada koneksi.
+
+## Catatan data contoh
+
+- Data contoh booking memakai tanggal 6 dan 7 November 2026. Karena aplikasi menolak jadwal yang sudah lewat, data ini hanya untuk demo dan tidak bisa dibuat ulang lewat aplikasi setelah tanggalnya lewat.
+- Query pada bagian 3 menulis nilai contoh langsung (misalnya `field_id = 1`). Di aplikasi, nilai tersebut dikirim sebagai parameter.
+- Kode booking dan kode transaksi yang dibuat aplikasi dihasilkan otomatis dengan format yang lebih panjang dari contoh (`BK-001`, `TRX-001`). Contoh hanya untuk data awal.
+- Akun admin tidak ada di data contoh. Buat lewat halaman daftar karena password harus berupa hash bcrypt.
+
+## Skema SQL, data contoh, dan query
+
+```sql
 -- ============================================================
 
 -- MJBCourt - Data model (SQLite)
@@ -234,3 +391,4 @@ ORDER BY pendapatan DESC;
 -- 3.16 Hapus data
 DELETE FROM bookings WHERE id = 4;
 DELETE FROM prices   WHERE id = 1;
+```
